@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 )
 
@@ -40,7 +41,7 @@ func (ba ByAssurance) ByAssurance(assurance Assurance) map[int]*WorkerNode {
 	} else if assurance == HighAssurance {
 		return ba.High
 	}
-	fmt.Printf("Errore in cluster.go ByAssurance: (%d)\n", assurance)
+	log.Printf("Errore in cluster.go ByAssurance: (%d)\n", assurance)
 	os.Exit(1)
 	return map[int]*WorkerNode{}
 }
@@ -59,12 +60,17 @@ func (ba ByAssurance) All_list() []*WorkerNode {
 func (ba ByAssurance) String() string {
 	result := ""
 	result += "\t\tHigh Assurance:"
+	var rts string = ""
 	for id, node := range ba.High {
-		result += fmt.Sprintf(" %d (%d),", id, len(node.pods))
+		rts = ""
+		if node.RealTime{ rts = "*" }
+		result += fmt.Sprintf(" %d%s (%d),", id, rts, len(node.pods))
 	}
 	result += "\n\t\tLow Assurance:"
 	for id, node := range ba.Low {
-		result += fmt.Sprintf(" %d (%d),", id, len(node.pods))
+		rts = ""
+		if node.RealTime{ rts = "*" }
+		result += fmt.Sprintf(" %d%s (%d),", id, rts, len(node.pods))
 	}
 	return result
 }
@@ -107,7 +113,7 @@ func (c *Cluster) byState(state ClusterNodeState) ByAssurance {
 	} else if state == Active {
 		return c.Active
 	}
-	fmt.Printf("Errore in cluster.go byState: (%d)\n", state)
+	log.Printf("Errore in cluster.go byState: (%d)\n", state)
 	os.Exit(1)
 	return ByAssurance{}
 }
@@ -135,9 +141,9 @@ func (c *Cluster) AddWorkerNode(wn *WorkerNode) {
 	if !exists_I && !exists_A {
 		idleMap[wn.ID] = wn
 		c._Total_Energetic_Cost += wn.EnergyCost
-		// fmt.Printf("Added WorkerNode %d to Idle (Assurance: %s)\n\n", wn.ID, assurance)
+		// log.Printf("Added WorkerNode %d to Idle (Assurance: %s)\n\n", wn.ID, assurance)
 	} else {
-		fmt.Printf("WorkerNode %d already exists in Active (%t) or Idle (%t) (Assurance: %s)\n", wn.ID, exists_A, exists_I, assurance)
+		log.Printf("WorkerNode %d already exists in Active (%t) or Idle (%t) (Assurance: %s)\n", wn.ID, exists_A, exists_I, assurance)
 		os.Exit(1)
 	}
 }
@@ -180,7 +186,7 @@ func (c *Cluster) Get_by_Id(id int) (*WorkerNode, ClusterNodeState, Assurance) {
 	if exists {
 		return node, Idle, LowAssurance
 	}
-	fmt.Println("Errore in get By Id", id)
+	log.Println("Errore in get By Id", id)
 	return nil, 0, 0
 }
 
@@ -194,15 +200,15 @@ func (c *Cluster) ActivateWorkerNode(id int, assurance Assurance) {
 			delete(idleMap, id)
 			activeMap[id] = wn
 			c.energeticCost += wn.EnergyCost
-			// fmt.Printf("Updated en cost for cluster %s: %d\n", c.name, c.energeticCost)
-			if _Log>=Log_All{
-				fmt.Printf("WorkerNode %d moved from Idle to Active (Assurance: %s)\n", id, assurance)
+			// log.Printf("Updated en cost for cluster %s: %d\n", c.name, c.energeticCost)
+			if _Log >= Log_All {
+				// log.Printf("WorkerNode %d moved from Idle to Active (Assurance: %s)\n", id, assurance)
 			}
 		} else {
-			fmt.Printf("WorkerNode %d is already Active (Assurance: %s)\n", id, assurance)
+			log.Printf("WorkerNode %d is already Active (Assurance: %s)\n", id, assurance)
 		}
 	} else {
-		fmt.Printf("WorkerNode %d not found in Idle (Assurance: %s)\n", id, assurance)
+		log.Printf("WorkerNode %d not found in Idle (Assurance: %s)\n", id, assurance)
 	}
 }
 
@@ -216,15 +222,15 @@ func (c *Cluster) DeactivateWorkerNode(id int, assurance Assurance) {
 			delete(activeMap, id)
 			idleMap[id] = wn
 			c.energeticCost -= wn.EnergyCost
-			if _Log>=Log_Some{
-				fmt.Printf("WorkerNode %d moved from Active to Idle (Assurance: %s)\n", id, assurance)
+			if _Log >= Log_Some {
+				log.Printf("WorkerNode %d moved from Active to Idle (Assurance: %s)\n", id, assurance)
 			}
-			// fmt.Printf("Updated en cost for cluster %s: %d\n", c.name, c.energeticCost)
+			// log.Printf("Updated en cost for cluster %s: %d\n", c.name, c.energeticCost)
 		} else {
-			fmt.Printf("WorkerNode %d is already Idle (Assurance: %s)\n", id, assurance)
+			log.Printf("WorkerNode %d is already Idle (Assurance: %s)\n", id, assurance)
 		}
 	} else {
-		fmt.Printf("WorkerNode %d not found in Active (Assurance: %s)\n", id, assurance)
+		log.Printf("WorkerNode %d not found in Active (Assurance: %s)\n", id, assurance)
 	}
 }
 
@@ -271,7 +277,7 @@ func (s *Solution) byState(state ClusterNodeState) ByAssurance {
 	} else if state == Active {
 		return s.Active
 	}
-	fmt.Printf("Errore in cluster.go solution byState: (%d)\n", state)
+	log.Printf("Errore in cluster.go solution byState: (%d)\n", state)
 	os.Exit(1)
 	return ByAssurance{}
 }
@@ -285,10 +291,10 @@ func (s *Solution) AddToSolution(state ClusterNodeState, wn *WorkerNode) {
 	_, exists_I := idleMap[wn.ID]
 	_, exists_A := activeMap[wn.ID]
 	if exists_I || exists_A {
-		fmt.Printf("WorkerNode %d already exists in Active (%t) or Idle (%t) (Assurance: %s)\n", wn.ID, exists_A, exists_I, assurance)
+		log.Printf("WorkerNode %d already exists in Active (%t) or Idle (%t) (Assurance: %s)\n", wn.ID, exists_A, exists_I, assurance)
 	} else {
 		s.byState(state).ByAssurance(wn.Assurance)[wn.ID] = wn
-		// fmt.Printf("Added WorkerNode %d to Solution (State %s) (Assurance: %s)\n", wn.ID, state, assurance)
+		// log.Printf("Added WorkerNode %d to Solution (State %s) (Assurance: %s)\n", wn.ID, state, assurance)
 	}
 }
 

@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 const (
 	CPU  = iota // 0
@@ -14,13 +16,13 @@ type BasicResourceType struct {
 	limit   int
 }
 
-func (b BasicResourceType)Copy() BasicResourceType{
+func (b BasicResourceType) Copy() BasicResourceType {
 	return BasicResourceType{
 		request: b.request,
-		limit: b.limit,
+		limit:   b.limit,
 	}
 }
 
 func (br BasicResourceType) String() string {
-	return fmt.Sprintf("r: %d   l: %d",	br.request, br.limit)
+	return fmt.Sprintf("r: %d   l: %d", br.request, br.limit)
 }

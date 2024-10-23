@@ -2,12 +2,14 @@ package main
 
 import (
 	"encoding/csv"
-	"fmt"
-	"math"
+	"log"
 	"math/rand"
 	"os"
+	"strconv"
 	"strings"
 )
+
+var _FOLDER string
 
 func rand_01() float32 {
 	// Generate a random float32 in the range [0, 1)
@@ -19,6 +21,13 @@ func rand_ab_int(a int, b int) int {
 	r := rand_01()
 	r *= float32(b - a)
 	return int(r) + a
+}
+
+func rand_ab_float(a float32, b float32) float32 {
+	// Generate a random float32 in the range [0, 1)
+	r := rand_01()
+	r *= b - a
+	return r + a
 }
 
 func keepSign_centiSqr(base int) float32 {
@@ -39,22 +48,33 @@ func abs(val float32) float32 {
 	}
 }
 
-func float_to_str(v float32, dig int) string{
-	var d = float32(math.Pow10(dig))
-	var iv = int(v)
-	var decv = int(v*d) - int(float32(iv)*d)
-	return fmt.Sprintf("%d,%d", iv, decv)
+func float_to_str(num float32, dig int) string {
+	// Format the float with 2 decimal places
+	var formatted string
+	if float32(int(num)) == num {
+		formatted = strconv.FormatFloat(float64(num), 'f', 1, 64)
+	} else {
+		formatted = strconv.FormatFloat(float64(num), 'f', dig, 64)
+	}
+	// Replace the dot with a comma
+	return strings.Replace(formatted, ".", ",", 1)
 }
 
 func matrixToCsv(filename string, matrix [][]float32, header []string, digits int) {
 	// Create a new CSV file
 	if !strings.HasSuffix(filename, ".csv") {
-		fmt.Println("filename (", filename, ") should be csv..")
+		log.Println("filename (", filename, ") should be csv..")
+	}
+
+	// Removing evt file
+	err := os.Remove(filename)
+	if err != nil {
+		log.Println("Error deleting file:", err)
 	}
 
 	file, err := os.Create(filename)
 	if err != nil {
-		fmt.Println("Error creating file:", err)
+		log.Println("Error creating file:", err)
 	}
 	defer file.Close()
 
@@ -62,25 +82,25 @@ func matrixToCsv(filename string, matrix [][]float32, header []string, digits in
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
 
-	if header!=nil && len(header)>0{
+	if header != nil && len(header) > 0 {
 		err := writer.Write(header)
 		if err != nil {
-			fmt.Println("Error writing header in CSV:", err)
+			log.Println("Error writing header in CSV:", err)
 		}
 	}
 
 	// Write the matrix to the CSV file
 	for _, row := range matrix {
 		row_str := make([]string, len(row))
-		for i := range row{
+		for i := range row {
 			row_str[i] = float_to_str(row[i], digits)
 		}
 
 		err := writer.Write(row_str)
 		if err != nil {
-			fmt.Println("Error writing row to CSV:", err)
+			log.Println("Error writing row to CSV:", err)
 		}
 	}
 
-	fmt.Println("CSV file created successfully")
+	log.Println("CSV file created successfully")
 }

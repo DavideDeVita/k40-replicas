@@ -1,42 +1,46 @@
 package main
 
+//go run basicResourceType.go cluster.go enum.go k8s_scoring.go main.go pod.go set.go test.go utils.go workernode.go
+
 import (
-	"fmt"
+	"io"
+	"log"
 	"os"
 )
 
 /* GLOBAL VARIABLES */
 // Number of Worker Nodes
-var n int = 21 //rand_ab_int(8, 25)
+var n int = 13 //rand_ab_int(10, 25)
 
 // Number of Pods
-var m int = 414 //rand_ab_int(350, 700)
+var m int = 1000 //rand_ab_int(500, 1000)
 
 // Which algos am I comparing?
-// var testNames []string = []string{"K4.0 Greedy", "K4.0 Dynamic", "K8s_leastAllocated"}
-// var testNames []string = []string{"K4.0 Greedy", "K4.0 Dynamic", "K8s_mostAllocated"}
-var testNames []string = []string{"K4.0 Greedy", "K4.0 Dynamic", "K8s_requestedToCapacityRatio"}
+// var _test Test = TEST_LeastAllocated
+// var _test Test = TEST_LeastAllocated_4Params
+// var _test Test = TEST_MostAllocated
+// var _test Test = TEST_MostAllocated_4Params
+// var _test Test = TEST_RequestedToCapacityRatio
+var _test Test = TEST_RequestedToCapacityRatio_3Params
 
-var nTests int = len(testNames)
-var testCallables = []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{
-	adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__k8s,
-}
-
-// var scoringFunctions = []func(*WorkerNode, *Pod) float32{costAware_leastAllocated_score, costAware_leastAllocated_score, k8s_leastAllocated_score}
-// var scoringFunctions = []func(*WorkerNode, *Pod) float32{costAware_mostAllocated_score, costAware_mostAllocated_score, k8s_mostAllocated_score}
-var scoringFunctions = []func(*WorkerNode, *Pod) float32{costAware_requestedToCapacityRatio_score, costAware_requestedToCapacityRatio_score, k8s_requestedToCapacityRatio_score}
-
+var nTests int
+var testNames []string
+var testCallables []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution
+var scoringFunctions []func(*WorkerNode, *Pod) float32
+var folderName string
 
 // Results (per test)
 var Acceptance_Ratio [][]float32 = make([][]float32, m)
 var Energy_cost_Ratio [][]float32 = make([][]float32, m)
 
 // Worker Nodes replicas for each algorithm
-var testClusters []*Cluster = make([]*Cluster, nTests)
+var testClusters []*Cluster
 
 var _MAX_ENERGY_COST = -1
 
-const _Log Log = Log_None
+const _Log Log = Log_All
+const _log_on_stdout bool = false
+var logFile *os.File
 
 // List of all Pods
 var allPods []*Pod
@@ -45,6 +49,20 @@ var allPods []*Pod
 
 /*	*	*	*	*	*	Initialization	*	*	*	*	*	*/
 func init() {
+	parse_args()
+	init_log()
+
+	testNames = _test.Names
+	testCallables = _test.Callables
+	scoringFunctions = _test.Scoring
+	folderName = _test.name
+	nTests = len(testNames)
+
+	if _test.MultiAware != nil {
+		init_multiAware_params(*_test.MultiAware)
+	}
+
+	testClusters = make([]*Cluster, nTests)
 	for t := range testNames {
 		testClusters[t] = NewCluster(testNames[t])
 	}
@@ -52,18 +70,69 @@ func init() {
 	/** Worker Nodes creation */
 	for i := 0; i < n; i++ {
 		wn := createRandomWorkerNode(i + 1 /*Id*/)
-		fmt.Println(wn)
+		
+		log.Println(wn)
 		// Every algo has the same nodes (replicas) inside
 		for t := range testNames {
 			testClusters[t].AddWorkerNode(wn.Copy())
 		}
 	}
-	fmt.Printf("n: %d\tm: %d\n", n, m)
+	log.Printf("n: %d\tm: %d\n", n, m)
+	log.Printf("nrt: %d\n", _NumRT)
+}
+
+func parse_args(){
+	_i_test := os.Args[1]
+	switch _i_test{
+		case "1":
+			_test= TEST_LeastAllocated
+			break
+		case "2":
+			_test= TEST_LeastAllocated_4Params
+			break
+		case "3":
+			_test= TEST_MostAllocated
+			break
+		case "4":
+			_test= TEST_MostAllocated_4Params
+			break
+		case "5":
+			_test= TEST_RequestedToCapacityRatio
+			break
+		case "6":
+			_test= TEST_RequestedToCapacityRatio_3Params
+			break
+		default:
+			os.Exit(2)
+	}
+}
+
+func init_log() {
+	// Create or open a log file
+	_FOLDER =  _test.name + "\\"+os.Args[2]+"\\"
+	var filename string = _FOLDER + "output.log"
+	os.MkdirAll(_FOLDER, os.ModePerm)
+	_logFile, err := os.Create(filename)
+	if err != nil {
+		log.Println("Error creating log file:", err)
+		os.Exit(2)
+	}
+	logFile = _logFile
+	// Create a multi-writer to write to both the file and the console
+	var multiWriter io.Writer
+	if _log_on_stdout{
+		multiWriter = io.MultiWriter(os.Stdout, logFile)
+	}else{
+		multiWriter = io.MultiWriter(logFile)
+	}
+	// Set up the logger to use the multi-writer
+	log.SetOutput(multiWriter)
 }
 
 // MAIN
 func main() {
 	main_sequential()
+	logFile.Close()
 }
 
 func main_sequential() {
@@ -82,7 +151,7 @@ func main_sequential() {
 		//Create Random Pod
 		pod = createRandomPod(j)
 		if _Log >= Log_Some {
-			fmt.Println(pod)
+			log.Println(pod)
 		}
 		// For each Cluster
 		for t := range testNames {
@@ -96,11 +165,11 @@ func main_sequential() {
 			Energy_cost_Ratio[j][t+1] = (float32(cluster.energeticCost) / float32(cluster._Total_Energetic_Cost))
 
 			if _Log >= Log_Some {
-				fmt.Println(cluster)
-				fmt.Println()
+				log.Println(cluster)
+				log.Println()
 			}
-			if _Log >= Log_Scores {
-				fmt.Printf("\n%s:\t    \tAccepted: %d/%d (%.2f%%)\t\tEnergy: %d/%d (%.2f%%)\n\n",
+			if _Log == Log_Scores {
+				log.Printf("\n%s:\t    \tAccepted: %d/%d (%.2f%%)\t\tEnergy: %d/%d (%.2f%%)\n\n",
 					cluster.name,
 					cluster.accepted, cluster._Total_Pods, 100.*Acceptance_Ratio[j][t+1],
 					cluster.energeticCost, cluster._Total_Energetic_Cost, 100.*Energy_cost_Ratio[j][t+1],
@@ -118,17 +187,17 @@ func main_sequential() {
 			}
 		}
 		if _Log >= Log_Scores {
-			fmt.Println()
+			log.Println()
 		}
 	}
-	matrixToCsv("acceptance.csv", Acceptance_Ratio[:], append([]string{"pod index"}, testNames[:]...), 3)
-	matrixToCsv("energy.csv", Energy_cost_Ratio[:], append([]string{"pod index"}, testNames[:]...), 3)
+	matrixToCsv(_FOLDER+"acceptance.csv", Acceptance_Ratio[:], append([]string{"pod index"}, testNames[:]...), 3)
+	matrixToCsv(_FOLDER+"energy.csv", Energy_cost_Ratio[:], append([]string{"pod index"}, testNames[:]...), 3)
 }
 
 func apply_solution(cluster *Cluster, pod *Pod, solution Solution, test_name string) {
 	if solution.rejected {
 		if _Log >= Log_Some {
-			fmt.Printf("pod %d rejected by test %s\n", pod.ID, test_name)
+			log.Printf("pod %d rejected by test %s\n", pod.ID, test_name)
 		}
 		cluster.PodRejected()
 	} else {
@@ -138,7 +207,7 @@ func apply_solution(cluster *Cluster, pod *Pod, solution Solution, test_name str
 			for id, wn := range solution.Idle.ByAssurance(assurance) {
 				cluster.ActivateWorkerNode(id, assurance)
 				wn.InsertPod(pod)
-				// fmt.Println(wn)
+				// log.Println(wn)
 			}
 		}
 
@@ -146,15 +215,15 @@ func apply_solution(cluster *Cluster, pod *Pod, solution Solution, test_name str
 		for _, assurance := range ASSURANCES {
 			for _, wn := range solution.Active.ByAssurance(assurance) {
 				wn.InsertPod(pod)
-				// fmt.Println(wn)
+				// log.Println(wn)
 			}
 		}
 
 		cluster.PodAccepted()
 
 		if _Log >= Log_All {
-			// fmt.Printf("Solution applied by test %s\n", test_name)
-			// fmt.Println(solution)
+			// log.Printf("Solution applied by test %s\n", test_name)
+			// log.Println(solution)
 		}
 	}
 }
@@ -180,7 +249,7 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 	for required_replicas > 0 {
 
 		if !no_eligible_highAssurance_node_left && (required_replicas >= 2 || no_eligible_lowAssurance_node_left) {
-			// fmt.Printf("Searching in High, %s\n", state_im_scanning)
+			// log.Printf("Searching in High, %s\n", state_im_scanning)
 			// Search in High Assurance
 			id, score = find_best_wn(cluster.byState(state_im_scanning).ByAssurance(HighAssurance), pod,
 				true, exclude_ids,
@@ -191,10 +260,10 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 				continue
 			}
 			assurance = HighAssurance
-			// fmt.Printf("Found wn %d, with score %.2f\n", id, score)
+			// log.Printf("Found wn %d, with score %.2f\n", id, score)
 
 		} else if !no_eligible_lowAssurance_node_left && (required_replicas == 1 || no_eligible_highAssurance_node_left) {
-			// fmt.Printf("Searching in Low, %s\n", state_im_scanning)
+			// log.Printf("Searching in Low, %s\n", state_im_scanning)
 			// Search in Low Assurance
 			id, score = find_best_wn(cluster.byState(state_im_scanning).ByAssurance(LowAssurance), pod,
 				true, exclude_ids,
@@ -205,18 +274,18 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 				continue
 			}
 			assurance = LowAssurance
-			// fmt.Printf("Found wn %d, with score %.2f\n", id, score)
+			// log.Printf("Found wn %d, with score %.2f\n", id, score)
 
 		} else { //No eligible Worker found
 			if state_im_scanning == Active {
-				// fmt.Println("No eligibile Active Worker left, searching for Idle ones")
+				// log.Println("No eligibile Active Worker left, searching for Idle ones")
 				state_im_scanning = Idle
 
 				no_eligible_highAssurance_node_left = false //set this to true if no High Assurance Idle is eligible. Use it to skip in final loop
 				no_eligible_lowAssurance_node_left = false
 				continue
 			} else {
-				// fmt.Println("No eligibile Idle Worker left, rejected pod ", pod.ID)
+				// log.Println("No eligibile Idle Worker left, rejected pod ", pod.ID)
 				solution.Reject()
 				break
 			}
@@ -230,7 +299,7 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 		required_replicas -= int(best_node.Assurance)
 	}
 
-	// fmt.Printf("%s\n", solution)
+	// log.Printf("%s\n", solution)
 	return solution
 }
 
@@ -261,9 +330,11 @@ func find_best_wn(nodes map[int]*WorkerNode, pod *Pod,
 						argbest = id
 					}
 				}
-				// fmt.Printf("Scoring WN %d: %f\n", id, score)
+				
+				if _Log>=Log_All{
+					log.Printf("[Greedy]\tScoring WN %d for Pod %d: %.2f\n", id, pod.ID, score)
+				}
 			}
-			//else continue
 		}
 	}
 	return argbest, bestScore
@@ -303,26 +374,32 @@ func _create_dynamic_programming_matrix(Nodes *ByAssurance, pod *Pod, R int,
 	for _, node := range Nodes.High {
 		if node.EligibleFor(pod) {
 			scores = append(scores, placer_scoring_func(node, pod))
-			// fmt.Printf("Node %d. Score: %.2f\n", node.ID, placer_scoring_func(node, pod))
 			assurances = append(assurances, int(node.Assurance))
 			references = append(references, node)
 			eligibles++
+			
+			if _Log>=Log_All{
+				log.Printf("[Dynamic]\tNode %d, Pod %d. Score: %.2f\n", node.ID, pod.ID, scores[len(scores)-1])
+			}
 		}
 	}
 
 	for _, node := range Nodes.Low {
 		if node.EligibleFor(pod) {
 			scores = append(scores, placer_scoring_func(node, pod))
-			// fmt.Printf("Node %d. Score: %.2f\n", node.ID, placer_scoring_func(node, pod))
 			assurances = append(assurances, int(node.Assurance))
 			references = append(references, node)
 			eligibles++
+			
+			if _Log>=Log_All{
+				log.Printf("[Dynamic]\tNode %d, Pod %d. Score: %.2f\n", node.ID, pod.ID, scores[len(scores)-1])
+			}
 		}
 	}
 
 	// Now, create a 2D matrix (array) with rows equal to the number of eligible nodes
 	if len(scores) != len(assurances) || eligibles != len(scores) {
-		fmt.Printf("Errore, scores (%d) e assurances (%d) hanno dimensione diversa (in dynamic)\n", len(scores), len(assurances))
+		log.Printf("Errore, scores (%d) e assurances (%d) hanno dimensione diversa (in dynamic)\n", len(scores), len(assurances))
 		os.Exit(1)
 	}
 
@@ -368,25 +445,25 @@ func _create_dynamic_programming_matrix(Nodes *ByAssurance, pod *Pod, R int,
 	}
 
 	if false {
-		fmt.Println()
-		fmt.Printf("N\\R\t")
+		log.Println()
+		log.Printf("N\\R\t")
 		for r := 0; r <= R; r++ {
-			fmt.Printf("%d\t", r)
+			log.Printf("%d\t", r)
 		}
-		fmt.Println()
+		log.Println()
 		for i := 0; i <= N; i++ {
 			if i > 0 {
-				fmt.Printf("%d(%d):\t", i, references[i-1].ID)
+				log.Printf("%d(%d):\t", i, references[i-1].ID)
 			} else {
-				fmt.Printf("0(-):\t")
+				log.Printf("0(-):\t")
 			}
 
 			for r := 0; r <= R; r++ {
-				fmt.Printf("%.2f\t", M[i][r])
+				log.Printf("%.2f\t", M[i][r])
 			}
-			fmt.Println()
+			log.Println()
 		}
-		fmt.Println()
+		log.Println()
 	}
 	return M, references
 }
@@ -406,7 +483,7 @@ func _update_solution(solution *Solution, M [][]float32, state ClusterNodeState,
 		vec_i := i - 1
 		if M[i][r] != M[i-1][r] {
 			//Add i to solution
-			// fmt.Printf("Create sol i:%d (ID: %d)\n", i, references[vec_i].ID)
+			// log.Printf("Create sol i:%d (ID: %d)\n", i, references[vec_i].ID)
 			solution.AddToSolution(state, references[vec_i])
 			r -= int(references[vec_i].Assurance)
 		}
@@ -425,12 +502,14 @@ func adding_new_pod__k8s(cluster *Cluster, pod *Pod,
 	var exclude_ids Set = make(Set)
 
 	var id int = -1
-	// var score float32 = -1.
+	var score float32 = -1.
 	// Find best among Active nodes
 	var allNodes_map = cluster.All_map()
 	for required_replicas > 0 {
-		id, _ = find_best_wn(allNodes_map, pod, true, exclude_ids, placer_scoring_func, k8s_leastAllocated_condition)
-		// fmt.Printf("Searching eligible for pod %d, got wn: %d \n", pod.ID, id)
+		id, score = find_best_wn(allNodes_map, pod, true, exclude_ids, placer_scoring_func, k8s_leastAllocated_condition)
+		if _Log>=Log_All{
+			log.Printf("[K8s]\tSearching eligible for pod %d, got wn: %d with score %.2f\n", pod.ID, id, score)
+		}
 		if id < 0 {
 			solution.Reject()
 			break
@@ -441,6 +520,6 @@ func adding_new_pod__k8s(cluster *Cluster, pod *Pod,
 		required_replicas--
 	}
 
-	// fmt.Printf("%s\n", solution)
+	// log.Printf("%s\n", solution)
 	return solution
 }

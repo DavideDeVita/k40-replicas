@@ -1,6 +1,6 @@
 package main
 
-// import "fmt"
+// import "log"
 
 // Define an enum with custom values
 type Assurance int
@@ -39,13 +39,24 @@ func (c Criticality) String() string {
 	}
 }
 
-
 // Log
 type Log int
 
 const (
-	Log_None  Log = 0
+	Log_None   Log = 0
 	Log_Scores Log = 1
-	Log_Some  Log = 2
-	Log_All Log = 3
+	Log_Some   Log = 2
+	Log_All    Log = 3
+)
+
+// Interference
+const _LIGHT_INTERFERENCE_CHANCE float32 = 0.1
+const _HEAVY_INTERFERENCE_CHANCE float32 = 0.01
+
+type Interference int
+
+const (
+	No_Interference    Interference = 0
+	Light_Interference Interference = 1
+	Heavy_Interference Interference = 2
 )
