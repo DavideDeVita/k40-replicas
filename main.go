@@ -10,7 +10,7 @@ import (
 
 /* GLOBAL VARIABLES */
 // Number of Worker Nodes
-var n int = 13 //rand_ab_int(10, 25)
+var n int = 10 //rand_ab_int(10, 25)
 
 // Number of Pods
 var m int = 1000 //rand_ab_int(500, 1000)
@@ -49,19 +49,21 @@ var allPods []*Pod
 
 /*	*	*	*	*	*	Initialization	*	*	*	*	*	*/
 func init() {
-	parse_args()
+	parse_args() // Gives value to _test
 	init_log()
 
+	/*Initialization of parameters that depend on _test*/
 	testNames = _test.Names
 	testCallables = _test.Callables
 	scoringFunctions = _test.Scoring
 	folderName = _test.name
 	nTests = len(testNames)
 
-	if _test.MultiAware != nil {
+	if _test.MultiAware != nil { //Some tests may have the multiparameter vector to initialize
 		init_multiAware_params(*_test.MultiAware)
 	}
 
+	/*Creation of the clusters*/
 	testClusters = make([]*Cluster, nTests)
 	for t := range testNames {
 		testClusters[t] = NewCluster(testNames[t])
@@ -72,7 +74,7 @@ func init() {
 		wn := createRandomWorkerNode(i + 1 /*Id*/)
 		
 		log.Println(wn)
-		// Every algo has the same nodes (replicas) inside
+		// Every algo has the same nodes (copies of 'n' random generated nodes) inside
 		for t := range testNames {
 			testClusters[t].AddWorkerNode(wn.Copy())
 		}
@@ -101,6 +103,12 @@ func parse_args(){
 			break
 		case "6":
 			_test= TEST_RequestedToCapacityRatio_3Params
+			break
+		case "7":
+			_test= TEST_LA_LeastAllocated
+			break
+		case "8":
+			_test= TEST_LA_MostAllocated
 			break
 		default:
 			os.Exit(2)
@@ -141,23 +149,24 @@ func main_sequential() {
 
 	// New Iteration (New Pod)
 	for j := 0; j < m; j++ {
-		/*Init row for results*/
+		/*Init row for storing results (these will be written in a csv at the end)*/
 		Acceptance_Ratio[j] = make([]float32, nTests+1)
 		Energy_cost_Ratio[j] = make([]float32, nTests+1)
-
+			//first column is the index, unnecessary but i already wrote the plotting considering it
 		Acceptance_Ratio[j][0] = float32(j)
 		Energy_cost_Ratio[j][0] = float32(j)
+		
 		/*Adding new pod phase*/
 		//Create Random Pod
 		pod = createRandomPod(j)
 		if _Log >= Log_Some {
 			log.Println(pod)
 		}
-		// For each Cluster
+		// For each Cluster in the testbed, try to insert the pod (and its replicas)
 		for t := range testNames {
 			cluster = testClusters[t]
 			var solution Solution
-			solution = testCallables[t](cluster, pod, scoringFunctions[t])
+			solution = testCallables[t](cluster, pod, scoringFunctions[t])		// Solution is an "insertion plan"
 			apply_solution(cluster, pod.Copy(), solution, testNames[t])
 
 			//Results update
@@ -176,7 +185,8 @@ func main_sequential() {
 				)
 			}
 		}
-		/*Running pods*/
+
+		/*Running pods; some may complete, nodes may be shut down and stuff*/
 		for t := range testNames {
 			cluster = testClusters[t]
 			for _, wn := range cluster.All_list() {
@@ -186,6 +196,7 @@ func main_sequential() {
 				}
 			}
 		}
+
 		if _Log >= Log_Scores {
 			log.Println()
 		}
@@ -228,28 +239,32 @@ func apply_solution(cluster *Cluster, pod *Pod, solution Solution, test_name str
 	}
 }
 
+
+/*** These are the functions in the Callables vector ***/
 /** Greedy approach */
 func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 	placer_scoring_func func(*WorkerNode, *Pod) float32,
 ) Solution {
-	// var replicas_left int = pod.replicas
 	var required_replicas int = pod.replicas
 	var solution Solution = NewSolution(pod)
 	var exclude_ids Set = make(Set)
 
 	var state_im_scanning ClusterNodeState = Active
 
-	var no_eligible_highAssurance_node_left bool = false //set this to true if no High Assurance Idle is eligible. Use it to skip in final loop
+	var no_eligible_highAssurance_node_left bool = false //set this to true if no High Assurance is eligible. Use it to skip in final loop
 	var no_eligible_lowAssurance_node_left bool = false  //same with low
 
 	var id int = -1
 	var score float32 = -1.
 	var assurance Assurance = HighAssurance
-	// Find best among Active nodes
+
 	for required_replicas > 0 {
 
 		if !no_eligible_highAssurance_node_left && (required_replicas >= 2 || no_eligible_lowAssurance_node_left) {
-			// log.Printf("Searching in High, %s\n", state_im_scanning)
+			/*If need more than 1 replica -> search in High (so you make 2 replicas per node)
+				if you reach 1 replica left OR you went over all the High Assurance -> go to Low
+				NB: if you went through all the High Assurance, edit the bool flag, so you won't scan over them again eventually
+			*/
 			// Search in High Assurance
 			id, score = find_best_wn(cluster.byState(state_im_scanning).ByAssurance(HighAssurance), pod,
 				true, exclude_ids,
@@ -263,6 +278,10 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 			// log.Printf("Found wn %d, with score %.2f\n", id, score)
 
 		} else if !no_eligible_lowAssurance_node_left && (required_replicas == 1 || no_eligible_highAssurance_node_left) {
+			/*You enter here if you need 1 more replica, or if there are no more High Assurance to cover replicas
+				if you can't add enough nodes, edit the bool flag and go back to High Assurance (unless that flag is already to true)
+				in that case.. well, you can't satisfy the request.. do the same process over again in the Idle state
+			*/
 			// log.Printf("Searching in Low, %s\n", state_im_scanning)
 			// Search in Low Assurance
 			id, score = find_best_wn(cluster.byState(state_im_scanning).ByAssurance(LowAssurance), pod,
@@ -292,9 +311,9 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 		}
 		// Found node
 		best_node := cluster.byState(state_im_scanning).ByAssurance(assurance)[id]
-		score = score
+		score = score // I could use the score for logging, I add this empty operation because Go can't deal with unused variables
 
-		exclude_ids.Add(id)
+		exclude_ids.Add(id)	// This set is used to mark the nodes (id) i already scanned, so I won't scan over them again when I go from High to Low to High to Low again
 		solution.AddToSolution(state_im_scanning, best_node)
 		required_replicas -= int(best_node.Assurance)
 	}
@@ -308,7 +327,7 @@ func find_best_wn(nodes map[int]*WorkerNode, pod *Pod,
 	check_eligibility bool, exclude_ids Set,
 	placer_scoring_func func(*WorkerNode, *Pod) float32, placer_isBetter_eval_func func(float32, float32) bool,
 ) (int, float32) {
-
+	/*This function is used by Greedy and K8s too!*/
 	var score float32
 	var bestScore float32 = -1.
 	var argbest int = -1
