@@ -39,14 +39,14 @@ func (c Criticality) String() string {
 	}
 }
 
-// Log
-type Log int
+// LogLevel
+type LogLevel int
 
 const (
-	Log_None   Log = 0
-	Log_Scores Log = 1
-	Log_Some   Log = 2
-	Log_All    Log = 3
+	Log_None   LogLevel = 0
+	Log_Scores LogLevel = 1
+	Log_Some   LogLevel = 2
+	Log_All    LogLevel = 3
 )
 
 // Interference
