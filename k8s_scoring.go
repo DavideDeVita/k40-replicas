@@ -128,7 +128,7 @@ func init_multiAware_params(params MultiAwareParams) {
 }
 
 func _computationPower_ratio(node *WorkerNode, pod *Pod) float32 {
-	return pod.computation_left / float32(node.Computation_Power)
+	return 1. / float32(node.Computation_Power)
 }
 
 func parametric_scores_aware_score(node *WorkerNode, p *Pod) float32 {
