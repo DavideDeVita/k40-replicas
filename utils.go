@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/csv"
 	"log"
+	"math"
 	"math/rand"
 	"os"
 	"strconv"
@@ -28,6 +29,15 @@ func rand_ab_float(a float32, b float32) float32 {
 	r := rand_01()
 	r *= b - a
 	return r + a
+}
+
+func rand_10pow(a int, b int) float64 {
+	// Generate a random float64 in the range [0, 1)
+	r := rand.Float64()
+	a10 := math.Pow10(a)
+	b10 := math.Pow10(b)
+	r *= b10 - a10
+	return r + a10
 }
 
 func keepSign_centiSqr(base int) float32 {

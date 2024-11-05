@@ -16,12 +16,12 @@ var n int = 10 //rand_ab_int(10, 25)
 var m int = 1000 //rand_ab_int(500, 1000)
 
 // Which algos am I comparing?
-// var _test Test = TEST_LeastAllocated
+var _test Test = TEST_LeastAllocated
 // var _test Test = TEST_LeastAllocated_4Params
 // var _test Test = TEST_MostAllocated
 // var _test Test = TEST_MostAllocated_4Params
 // var _test Test = TEST_RequestedToCapacityRatio
-var _test Test = TEST_RequestedToCapacityRatio_3Params
+// var _test Test = TEST_RequestedToCapacityRatio_3Params
 
 var nTests int
 var testNames []string
@@ -193,7 +193,7 @@ func main_sequential() {
 			for _, wn := range cluster.All_list() {
 				completed := wn.RunPods()
 				if completed {
-					cluster.DeactivateWorkerNode(wn.ID, wn.Assurance)
+					cluster.DeactivateWorkerNode(wn.ID)
 				}
 			}
 		}
@@ -215,20 +215,16 @@ func apply_solution(cluster *Cluster, pod *Pod, solution Solution, test_name str
 	} else {
 		// Apply solution
 		// Wake who needs to be awaken
-		for _, assurance := range ASSURANCES {
-			for id, wn := range solution.Idle.ByAssurance(assurance) {
-				cluster.ActivateWorkerNode(id, assurance)
-				wn.InsertPod(pod)
-				// log.Println(wn)
-			}
+		for id, wn := range solution.Idle {
+			cluster.ActivateWorkerNode(id)
+			wn.InsertPod(pod)
+			// log.Println(wn)
 		}
 
 		// and add to those already active
-		for _, assurance := range ASSURANCES {
-			for _, wn := range solution.Active.ByAssurance(assurance) {
-				wn.InsertPod(pod)
-				// log.Println(wn)
-			}
+		for _, wn := range solution.Active {
+			wn.InsertPod(pod)
+			// log.Println(wn)
 		}
 
 		cluster.PodAccepted()
@@ -249,73 +245,36 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 	var solution Solution = NewSolution(pod)
 	var exclude_ids Set = make(Set)
 
-	var state_im_scanning ClusterNodeState = Active
-
-	var no_eligible_highAssurance_node_left bool = false //set this to true if no High Assurance is eligible. Use it to skip in final loop
-	var no_eligible_lowAssurance_node_left bool = false  //same with low
+	var state_im_scanning = Active
 
 	var id int = -1
 	var score float32 = -1.
-	var assurance Assurance = HighAssurance
 
 	for required_replicas > 0 {
-
-		if !no_eligible_highAssurance_node_left && (required_replicas >= 2 || no_eligible_lowAssurance_node_left) {
-			/*If need more than 1 replica -> search in High (so you make 2 replicas per node)
-			if you reach 1 replica left OR you went over all the High Assurance -> go to Low
-			NB: if you went through all the High Assurance, edit the bool flag, so you won't scan over them again eventually
-			*/
-			// Search in High Assurance
-			id, score = find_best_wn(cluster.byState(state_im_scanning).ByAssurance(HighAssurance), pod,
-				true, exclude_ids,
-				costAware_requestedToCapacityRatio_score, k8s_leastAllocated_condition,
-			)
-			if id == -1 {
-				no_eligible_highAssurance_node_left = true
-				continue
-			}
-			assurance = HighAssurance
-			// log.Printf("Found wn %d, with score %.2f\n", id, score)
-
-		} else if !no_eligible_lowAssurance_node_left && (required_replicas == 1 || no_eligible_highAssurance_node_left) {
-			/*You enter here if you need 1 more replica, or if there are no more High Assurance to cover replicas
-			if you can't add enough nodes, edit the bool flag and go back to High Assurance (unless that flag is already to true)
-			in that case.. well, you can't satisfy the request.. do the same process over again in the Idle state
-			*/
-			// log.Printf("Searching in Low, %s\n", state_im_scanning)
-			// Search in Low Assurance
-			id, score = find_best_wn(cluster.byState(state_im_scanning).ByAssurance(LowAssurance), pod,
-				true, exclude_ids,
-				costAware_requestedToCapacityRatio_score, k8s_leastAllocated_condition,
-			)
-			if id == -1 {
-				no_eligible_lowAssurance_node_left = true
-				continue
-			}
-			assurance = LowAssurance
-			// log.Printf("Found wn %d, with score %.2f\n", id, score)
-
-		} else { //No eligible Worker found
-			if state_im_scanning == Active {
-				// log.Println("No eligibile Active Worker left, searching for Idle ones")
+		/* Search greedily the best node
+		*/
+		id, score = find_best_wn( cluster.byState(state_im_scanning), pod,
+			true, exclude_ids,
+			placer_scoring_func, k8s_leastAllocated_condition,
+		)
+		if id == -1 {
+			//Node not found
+			if state_im_scanning == Active{
 				state_im_scanning = Idle
-
-				no_eligible_highAssurance_node_left = false //set this to true if no High Assurance Idle is eligible. Use it to skip in final loop
-				no_eligible_lowAssurance_node_left = false
 				continue
-			} else {
-				// log.Println("No eligibile Idle Worker left, rejected pod ", pod.ID)
+			} else{
 				solution.Reject()
 				break
 			}
-		}
-		// Found node
-		best_node := cluster.byState(state_im_scanning).ByAssurance(assurance)[id]
-		score = score // I could use the score for logging, I add this empty operation because Go can't deal with unused variables
+		} else{  //else innecessario
+			// Found node
+			best_node := cluster.byState(state_im_scanning)[id]
+			score = score // I could use the score for logging, I add this empty operation because Go can't deal with unused variables
 
-		exclude_ids.Add(id) // This set is used to mark the nodes (id) i already scanned, so I won't scan over them again when I go from High to Low to High to Low again
-		solution.AddToSolution(state_im_scanning, best_node)
-		required_replicas -= int(best_node.Assurance)
+			exclude_ids.Add(id) // This set is used to mark the nodes (id) i already scanned, so I won't scan over them again when I go from High to Low to High to Low again
+			solution.AddToSolution(state_im_scanning, best_node)
+			required_replicas--  // Il grande cambiamento 
+		}
 	}
 
 	// log.Printf("%s\n", solution)
@@ -323,11 +282,11 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 }
 
 func find_best_wn(nodes map[int]*WorkerNode, pod *Pod,
-	//extra args
-	check_eligibility bool, exclude_ids Set,
-	placer_scoring_func func(*WorkerNode, *Pod) float32, placer_isBetter_eval_func func(float32, float32) bool,
-) (int, float32) {
-	/*This function is used by Greedy and K8s too!*/
+					//extra args
+					check_eligibility bool, exclude_ids Set,
+					placer_scoring_func func(*WorkerNode, *Pod) float32, placer_isBetter_eval_func func(float32, float32) bool,
+				) (int, float32) {
+	/*This function is used by Greedy and K8s !*/
 	var score float32
 	var bestScore float32 = -1.
 	var argbest int = -1
@@ -380,7 +339,7 @@ func adding_new_pod__dynamic(cluster *Cluster, pod *Pod,
 	return solution
 }
 
-func _create_dynamic_programming_matrix(Nodes *ByAssurance, pod *Pod, R int,
+func _create_dynamic_programming_matrix(Nodes map[int]WorkerNode, pod *Pod, R int,
 	placer_scoring_func func(*WorkerNode, *Pod) float32,
 ) ([][]float32, []*WorkerNode) {
 	/* Init vars*/
@@ -533,7 +492,7 @@ func adding_new_pod__k8s(cluster *Cluster, pod *Pod,
 			solution.Reject()
 			break
 		}
-		node, state, _ := cluster.Get_by_Id(id)
+		node, state := cluster.Get_by_Id(id)
 		solution.AddToSolution(state, node)
 		exclude_ids.Add(id)
 		required_replicas--

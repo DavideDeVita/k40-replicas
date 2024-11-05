@@ -3,21 +3,27 @@ package main
 // import "log"
 
 // Define an enum with custom values
-type Assurance int
+type Assurance float64
 
 const (
-	LowAssurance  Assurance = 1
-	HighAssurance Assurance = 2
+	_2  Assurance = 0.99
+	_2h Assurance = 0.995
+	_3  Assurance = 0.999
+	_3h Assurance = 0.9995
+	_4  Assurance = 0.9999
+	_4h Assurance = 0.99995
+	_5  Assurance = 0.99999
+	_5h Assurance = 0.999995
+	_6  Assurance = 0.999999
+	_6h Assurance = 0.9999995
+	_7  Assurance = 0.9999999
 )
 
-var ASSURANCES []Assurance = []Assurance{LowAssurance, HighAssurance}
+var ASSURANCES []Assurance = []Assurance{_2, _2h, _3, _3h, _4, _4h, _5, _5h, _6, _6h, _7}
 
-func (a Assurance) String() string {
-	if a == LowAssurance {
-		return "Low"
-	} else {
-		return "High"
-	}
+func rand_Assurance() Assurance{
+	r := rand_ab_int(0, len(ASSURANCES))
+	return ASSURANCES[r]
 }
 
 // Define an enum with custom values
@@ -47,16 +53,4 @@ const (
 	Log_Scores LogLevel = 1
 	Log_Some   LogLevel = 2
 	Log_All    LogLevel = 3
-)
-
-// Interference
-const _LIGHT_INTERFERENCE_CHANCE float32 = 0.1
-const _HEAVY_INTERFERENCE_CHANCE float32 = 0.01
-
-type Interference int
-
-const (
-	No_Interference    Interference = 0
-	Light_Interference Interference = 1
-	Heavy_Interference Interference = 2
 )

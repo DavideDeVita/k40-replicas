@@ -49,7 +49,7 @@ type WorkerNode struct {
 	RAM_Capacity      int
 	RealTime          bool
 	EnergyCost        int
-	Assurance         Assurance
+	Assurance         float64    // Assurance is now "the probability of not failing and is to be in [10^-7; 10^-2]"
 	Computation_Power int
 
 	pods   map[int]*Pod
@@ -70,12 +70,11 @@ func createRandomWorkerNode(id int) WorkerNode {
 	var cp int = rand_ab_int(cp_min, cp_max)
 	var cost_f float32 = float32(rand_ab_int(cost_min, cost_max) * cost_unit)
 
-	var assurance Assurance
-	var r = rand_01()
-	if r >= 0.5 || (rt && r >= 1./3.) {
-		assurance = HighAssurance
-	} else {
-		assurance = LowAssurance
+	var assurance float64
+	if rt {
+		assurance = rand_10pow(-7, -2)
+	} else { //Useless else now
+		assurance = rand_10pow(-7, -2)
 	}
 
 	/*Realistic overprice*/
@@ -83,7 +82,7 @@ func createRandomWorkerNode(id int) WorkerNode {
 		if rt {
 			cost_f *= rand_ab_float(1.25, 2.5)
 		}
-		if assurance == HighAssurance {
+		if assurance >= 0.9995 {
 			cost_f *= rand_ab_float(1., 2.)
 		}
 
@@ -240,19 +239,13 @@ func (wn *WorkerNode) RemovePod(pod *Pod) {
 
 // Pud running
 func (wn *WorkerNode) RunPods() bool {
-	r := rand_01()
-	var inter Interference = No_Interference
-	if wn.Assurance == LowAssurance {
-		if r < _HEAVY_INTERFERENCE_CHANCE {
-			inter = Heavy_Interference
-		} else if r < _LIGHT_INTERFERENCE_CHANCE+_HEAVY_INTERFERENCE_CHANCE {
-			inter = Light_Interference
-		}
-	}
+	r := float64(rand_01())
+	var interference bool = r > wn.Assurance // there is interference if randomValue is greater than assurance (assurance is chance of not having interference)
+	
 	if len(wn.pods) > 0 {
 		completed := make([]*Pod, 0)
 		for _, pod := range wn.pods {
-			complete := pod.Run(wn, inter)
+			complete := pod.Run(wn, interference)
 			if complete {
 				if _Log >= Log_Some {
 					log.Printf("Pod %d completed on worker node %d\n", pod.ID, wn.ID)

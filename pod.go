@@ -133,14 +133,10 @@ func (p Pod) String() string {
 
 /* Run */
 
-func (p *Pod) Run(wn *WorkerNode, inter Interference) bool {
+func (p *Pod) Run(wn *WorkerNode, interference bool) bool {
 	var mult float32 = 1.
-	if inter != No_Interference {
-		if inter == Light_Interference {
-			mult = rand_01()
-		} else {
-			mult = 0.5 + rand_01()*0.5
-		}
+	if interference{ //in this version, if there is interference just cancel out the entire computation for this iteration
+		mult = 0. 
 	}
 	p.computation_left -= float32(wn.Computation_Power) * mult
 	// p.computation_left -= 1. * mult
