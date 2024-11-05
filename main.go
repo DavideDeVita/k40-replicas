@@ -268,7 +268,7 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 			// Search in High Assurance
 			id, score = find_best_wn(cluster.byState(state_im_scanning).ByAssurance(HighAssurance), pod,
 				true, exclude_ids,
-				costAware_requestedToCapacityRatio_score, k8s_leastAllocated_condition,
+				placer_scoring_func, k8s_leastAllocated_condition,
 			)
 			if id == -1 {
 				no_eligible_highAssurance_node_left = true
@@ -286,7 +286,7 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 			// Search in Low Assurance
 			id, score = find_best_wn(cluster.byState(state_im_scanning).ByAssurance(LowAssurance), pod,
 				true, exclude_ids,
-				costAware_requestedToCapacityRatio_score, k8s_leastAllocated_condition,
+				placer_scoring_func, k8s_leastAllocated_condition,
 			)
 			if id == -1 {
 				no_eligible_lowAssurance_node_left = true
