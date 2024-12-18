@@ -60,13 +60,15 @@ func (c *Cluster) byState(state ClusterNodeState) map[int]*WorkerNode {
 	return nil
 }
 
-func _state_String( byState map[int]*WorkerNode) string {
+func _state_String(byState map[int]*WorkerNode) string {
 	result := ""
 	var rts string = ""
 	for id, node := range byState {
 		rts = ""
-		if node.RealTime{ rts = "*" }
-		result += fmt.Sprintf(" %d%s (%d),", id, rts, len(node.pods))
+		if node.RealTime {
+			rts = "*"
+		}
+		result += fmt.Sprintf(" %d%s(%d),", id, rts, len(node.pods))
 	}
 	return result
 }
@@ -77,9 +79,9 @@ func (c Cluster) String() string {
 	result += fmt.Sprintf("Energetic cost: %d/%d (%.2f%%)\n", c.energeticCost, c._Total_Energetic_Cost, 100.*float32(c.energeticCost)/float32(c._Total_Energetic_Cost))
 	//else
 	result += fmt.Sprintf("\tActive Workers: %d\n", len(c.Active))
-	result += _state_String(c.Active) + "\n"
+	result += "\t\t" + _state_String(c.Active) + "\n"
 	result += fmt.Sprintf("\tIdle Workers: %d\n", len(c.Idle))
-	result += _state_String(c.Idle) + "\n"
+	result += "\t\t" + _state_String(c.Idle) + "\n"
 	return result
 }
 
@@ -103,11 +105,11 @@ func (c *Cluster) AddWorkerNode(wn *WorkerNode) {
 func (c *Cluster) All_list() []*WorkerNode {
 	var ret []*WorkerNode = make([]*WorkerNode, 0)
 	for _, wn := range c.Active {
-        ret = append(ret, wn)
-    }
+		ret = append(ret, wn)
+	}
 	for _, wn := range c.Idle {
-        ret = append(ret, wn)
-    }
+		ret = append(ret, wn)
+	}
 	return ret
 }
 
@@ -196,19 +198,21 @@ Nodes in Active are nodes to insert it into,
 while nodes in Idle are nodes that need to be woken up, and then inserted into
 */
 type Solution struct {
-	pod      *Pod
-	rejected bool
-	Active   map[int]*WorkerNode
-	Idle     map[int]*WorkerNode
+	pod        *Pod
+	rejected   bool
+	Active     map[int]*WorkerNode
+	Idle       map[int]*WorkerNode
+	n_replicas int
 }
 
 // NewSolution initializes a Solution with empty Active and Idle maps for both High and Low
 func NewSolution(pod *Pod) Solution {
 	return Solution{
-		pod:      pod,
-		rejected: false,
-		Active:   make(map[int]*WorkerNode),
-		Idle:     make(map[int]*WorkerNode),
+		pod:        pod,
+		rejected:   false,
+		Active:     make(map[int]*WorkerNode),
+		Idle:       make(map[int]*WorkerNode),
+		n_replicas: 0,
 	}
 }
 
@@ -232,13 +236,13 @@ func (s *Solution) byState(state ClusterNodeState) map[int]*WorkerNode {
 func (s *Solution) AddToSolution(state ClusterNodeState, wn *WorkerNode) {
 	idleMap := s.Idle
 	activeMap := s.Active
-
 	_, exists_I := idleMap[wn.ID]
 	_, exists_A := activeMap[wn.ID]
 	if exists_I || exists_A {
 		log.Printf("WorkerNode %d already exists in Active (%t) or Idle (%t)\n", wn.ID, exists_A, exists_I)
 	} else {
 		s.byState(state)[wn.ID] = wn
+		s.n_replicas++
 		// log.Printf("Added WorkerNode %d to Solution (State %s)\n", wn.ID, state)
 	}
 }
@@ -246,10 +250,11 @@ func (s *Solution) AddToSolution(state ClusterNodeState, wn *WorkerNode) {
 func (s Solution) String() string {
 	result := fmt.Sprintf("Adding pod %d.\n", s.pod.ID)
 	if s.rejected {
-		result += "   Solution not found:\n"
+		result += "\tSolution not found:\n"
 		return result
 	}
 	//else
+	result += fmt.Sprintf("\t%d replicas deployed\n", s.n_replicas)
 	result += "\tadd to Active Workers:\n"
 	result += _state_String(s.Active)
 	result += "\nwake Idle Workers:\n"

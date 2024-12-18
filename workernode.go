@@ -7,6 +7,7 @@ import (
 )
 
 const _REALISTIC_OVERPRICE bool = true
+
 var _NumRT int = 0
 var _noRT_since float32 = 0. // I use this to 'ensure' enough rt nodes
 
@@ -49,7 +50,7 @@ type WorkerNode struct {
 	RAM_Capacity      int
 	RealTime          bool
 	EnergyCost        int
-	Assurance         float64    // Assurance is now "the probability of not failing and is to be in [10^-7; 10^-2]"
+	Assurance         _Assurance // Assurance is now "the probability of not failing and is to be in [10^-7; 10^-2]"
 	Computation_Power int
 
 	pods   map[int]*Pod
@@ -62,7 +63,7 @@ func createRandomWorkerNode(id int) WorkerNode {
 	const cost_unit, cost_min, cost_max int = 50, 5, 50
 	const cp_min, cp_max int = 1, 5
 
-	var p_rt float32 = (_noRT_since+1)/(_noRT_since+2) 
+	var p_rt float32 = (_noRT_since + 1) / (_noRT_since + 2)
 	var rt = rand_01() <= p_rt
 	var cpu_capacity int = rand_ab_int(br_min, br_max) * br_unit
 	var disk_capacity int = rand_ab_int(br_min, br_max) * br_unit
@@ -70,12 +71,7 @@ func createRandomWorkerNode(id int) WorkerNode {
 	var cp int = rand_ab_int(cp_min, cp_max)
 	var cost_f float32 = float32(rand_ab_int(cost_min, cost_max) * cost_unit)
 
-	var assurance float64
-	if rt {
-		assurance = rand_10pow(-7, -2)
-	} else { //Useless else now
-		assurance = rand_10pow(-7, -2)
-	}
+	var assurance _Assurance = rand__Assurance(rt)
 
 	/*Realistic overprice*/
 	if _REALISTIC_OVERPRICE {
@@ -108,11 +104,13 @@ func createRandomWorkerNode(id int) WorkerNode {
 		_MAX_ENERGY_COST = cost_i
 	}
 
-	if rt{
+	if rt {
 		_NumRT++
 		_noRT_since--
-		if _noRT_since<0.{ _noRT_since=0. }
-	}else{
+		if _noRT_since < 0. {
+			_noRT_since = 0.
+		}
+	} else {
 		_noRT_since++
 	}
 
@@ -240,8 +238,8 @@ func (wn *WorkerNode) RemovePod(pod *Pod) {
 // Pud running
 func (wn *WorkerNode) RunPods() bool {
 	r := float64(rand_01())
-	var interference bool = r > wn.Assurance // there is interference if randomValue is greater than assurance (assurance is chance of not having interference)
-	
+	var interference bool = r > wn.Assurance.value() // there is interference if randomValue is greater than assurance (assurance is chance of not having interference)
+
 	if len(wn.pods) > 0 {
 		completed := make([]*Pod, 0)
 		for _, pod := range wn.pods {

@@ -13,10 +13,4 @@ set "fileList=!fileList:~1!"
 
 echo %fileList%
 
-for /L %%i in (1,1,6) do (
-    for /L %%j in (1,1,15) do (
-        go run %fileList% %%i %%j 
-
-        echo Executed Test: %%i : %%j
-    )
-)
+go run %fileList% 0 0 
