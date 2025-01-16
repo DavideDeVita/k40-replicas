@@ -76,6 +76,10 @@ func float_to_str(num float32, dig int) string {
 	return strings.Replace(formatted, ".", ",", 1)
 }
 
+func power_floor(base float64, exp int) int {
+	return int(math.Pow(base, float64(exp)))
+}
+
 func matrixToCsv(filename string, matrix [][]float32, header []string, digits int) {
 	// Create a new CSV file
 	if !strings.HasSuffix(filename, ".csv") {
@@ -121,7 +125,7 @@ func matrixToCsv(filename string, matrix [][]float32, header []string, digits in
 	log.Println("CSV file created successfully")
 }
 
-func sortByPrimary(primary []float64, secondary_f32 []float32, secondary_wn []*WorkerNode, secondary_cns []ClusterNodeState, condition func(a, b float64) bool, reverse bool) {
+func sortByPrimary_f64(primary []float64, secondary_scr []float32, secondary_wn []*WorkerNode, secondary_cns []ClusterNodeState, condition func(a, b float64) bool, reverse bool) {
 	n := len(primary)
 
 	// Create an index slice
@@ -147,15 +151,64 @@ func sortByPrimary(primary []float64, secondary_f32 []float32, secondary_wn []*W
 
 	for i, idx := range indices {
 		tempPrimary[i] = primary[idx]
-		tempSecondary[i] = secondary_f32[idx]
+		tempSecondary[i] = secondary_scr[idx]
 		tempNodes[i] = secondary_wn[idx]
 		tempStates[i] = secondary_cns[idx]
 	}
 
 	copy(primary, tempPrimary)
-	copy(secondary_f32, tempSecondary)
+	copy(secondary_scr, tempSecondary)
 	copy(secondary_wn, tempNodes)
 	copy(secondary_cns, tempStates)
+}
+
+func sortByPrimary_f32(primary []float32, secondary_ass []float64, secondary_wn []*WorkerNode, secondary_cns []ClusterNodeState, condition func(a, b float32) bool, reverse bool) {
+	n := len(primary)
+
+	// Create an index slice
+	indices := make([]int, n)
+	for i := 0; i < n; i++ {
+		indices[i] = i
+	}
+
+	// Sort indices based on primary array
+	sort.Slice(indices, func(i, j int) bool {
+		if !reverse {
+			return condition(primary[indices[i]], primary[indices[j]])
+		} else {
+			return !condition(primary[indices[i]], primary[indices[j]])
+		}
+	})
+
+	// Reorder primary array
+	tempPrimary := make([]float32, n)
+	tempSecondary := make([]float64, n)
+	tempNodes := make([]*WorkerNode, n)
+	tempStates := make([]ClusterNodeState, n)
+
+	for i, idx := range indices {
+		tempPrimary[i] = primary[idx]
+		tempSecondary[i] = secondary_ass[idx]
+		tempNodes[i] = secondary_wn[idx]
+		tempStates[i] = secondary_cns[idx]
+	}
+
+	copy(primary, tempPrimary)
+	copy(secondary_ass, tempSecondary)
+	copy(secondary_wn, tempNodes)
+	copy(secondary_cns, tempStates)
+}
+
+func const_array(arr []int) bool {
+	if len(arr) > 0 {
+		st := arr[0]
+		for _, x := range arr[1:] {
+			if x != st {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func readableNanoseconds(ns int64) string {

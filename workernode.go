@@ -197,8 +197,7 @@ func (node *WorkerNode) AllocatedPercentage() (float32, float32, float32) {
 
 // Eligibility
 func (wn WorkerNode) baseRequirementsMatch(p *Pod) bool {
-	return (wn.RealTime || !p.RealTime) &&
-		wn.status.unrequestedCPU >= p.CPU.request &&
+	return wn.status.unrequestedCPU >= p.CPU.request &&
 		wn.status.unrequestedDisk >= p.Disk.request &&
 		wn.status.unrequestedRAM >= p.RAM.request
 }
@@ -209,6 +208,20 @@ func (wn *WorkerNode) EligibleFor(pod *Pod) bool {
 	return (wn.RealTime || !pod.RealTime) &&
 		wn.advancedRequirementsMatch(pod) &&
 		wn.baseRequirementsMatch(pod)
+}
+
+func (wn *WorkerNode) ExplainEligibility(pod *Pod) (bool, string) {
+	if wn.EligibleFor(pod) {
+		return false, "Is eligible"
+	} else {
+		if !(wn.RealTime || !pod.RealTime) {
+			return false, "Run time eligibility violated"
+		} else {
+			return true, fmt.Sprintf("Resource insufficient:\n\tPod req: %d, %d, %d\n\tWN status: %d, %d, %d\n", 
+			pod.CPU.request, pod.Disk.request, pod.RAM.request, 
+			wn.status.unrequestedCPU, wn.status.unrequestedDisk, wn.status.unrequestedRAM)
+		}
+	}
 }
 
 // Actions
@@ -236,7 +249,7 @@ func (wn *WorkerNode) RemovePod(pod *Pod) {
 }
 
 // Pud running
-func (wn *WorkerNode) RunPods() bool {
+func (wn *WorkerNode) RunPods(algoTag string) bool {
 	r := float64(rand_01())
 	var interference bool = r > wn.Assurance.value() // there is interference if randomValue is greater than assurance (assurance is chance of not having interference)
 
@@ -246,7 +259,7 @@ func (wn *WorkerNode) RunPods() bool {
 			complete := pod.Run(wn, interference)
 			if complete {
 				if _Log >= Log_Some {
-					log.Printf("Pod %d completed on worker node %d\n", pod.ID, wn.ID)
+					log.Printf("[%s] Pod %d completed on worker node %d\n", algoTag, pod.ID, wn.ID)
 				}
 				completed = append(completed, pod)
 			}

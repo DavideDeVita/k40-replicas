@@ -1,7 +1,20 @@
 package main
 
+import "fmt"
+
 // Create a set using a map with struct{} as the value type
 type Set map[int]struct{}
+
+func (s Set) String() string{
+    ret := "{"
+    if s.Size()>0{
+        for k := range s{
+            ret += fmt.Sprint(k)+", "
+        }
+        ret = ret[:len(ret)-2]
+    }
+    return ret+"}"
+}
 
 // Add an element to the set
 func (s Set) Add(element int) {

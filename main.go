@@ -3,6 +3,7 @@ package main
 //go run basicResourceType.go cluster.go enum.go k8s_scoring.go main.go pod.go set.go test.go utils.go workernode.go
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -11,10 +12,10 @@ import (
 
 /* GLOBAL VARIABLES */
 // Number of Worker Nodes
-var n int = 8 //rand_ab_int(10, 25)
+const n int = 10 //rand_ab_int(10, 25)
 
 // Number of Pods
-var m int = 1000 // rand_ab_int(500, 1000)
+const m int = 1000 // rand_ab_int(500, 1000)
 
 // Which algos am I comparing?
 var _test Test = TEST_LeastAllocated
@@ -86,7 +87,7 @@ func init() {
 		}
 	}
 	log.Printf("n: %d\tm: %d\n", n, m)
-	log.Printf("nrt: %d\n", _NumRT)
+	log.Printf("num rt: %d\n", _NumRT)
 }
 
 func parse_args() {
@@ -95,7 +96,7 @@ func parse_args() {
 	case "0": //custom
 		_test = Test{
 			name:           "custom_test",
-			Names:          []string{"K4.0 Greedy", "K4.0 Dynamic Neo", "K8s_mostAllocated"},
+			Names:          []string{"K4.0 Greedy", "K4.0 Dynamic", "K8s_mostAllocated"},
 			Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__k8s},
 			Is_multiparam:  []bool{true, true, false},
 
@@ -160,7 +161,7 @@ func main_sequential() {
 	var pod *Pod
 	var cluster *Cluster
 	var stopwatch time.Time
-	var R []int = []int{0, 0, 0}
+	var R []int = make([]int, nTests)
 
 	// New Iteration (New Pod)
 	for j := 0; j < m; j++ {
@@ -188,9 +189,6 @@ func main_sequential() {
 			chronometers[t] += time.Since(stopwatch).Nanoseconds()
 			//
 
-			if _Log >= Log_Scores {
-				log.Printf("[%s]\tSolution with %d replicas\n", _test.Names[t], solution.n_replicas)
-			}
 			//Results update
 			Acceptance_Ratio[j][t+1] = (float32(cluster.accepted) / float32(cluster._Total_Pods))
 			Energy_cost_Ratio[j][t+1] = (float32(cluster.energeticCost) / float32(cluster._Total_Energetic_Cost))
@@ -207,19 +205,28 @@ func main_sequential() {
 				)
 			}
 
-			
 			//replicas benchmark
-			R[t] = solution.n_replicas
-			if t == 2 && (R[0] != R[1] || R[1] != R[2] || R[2] != R[0]) {
-				log.Printf("[Replicas D]\n\t[%s]: \t%d\n\t[%s]: \t%d\n\t[%s]: \t%d\n\n", _test.Names[0], R[0], _test.Names[1], R[1], _test.Names[2], R[2])
+			if solution.rejected {
+				R[t] = 0
+			} else {
+				R[t] = solution.n_replicas
+			}
+
+			if t == nTests-1 && !const_array(R) {
+				// log.Printf("[Replicas D]\n\t[%s]: \t%d\n\t[%s]: \t%d\n\t[%s]: \t%d\n\n", _test.Names[0], R[0], _test.Names[1], R[1], _test.Names[2], R[2])
+				str := "[Replicas D]"
+				for _i, _ := range R {
+					str += fmt.Sprintf("\n\t[%s]: \t%d", _test.Names[_i], R[_i])
+				}
+				log.Printf("%s\n\n", str)
 			}
 		}
 
 		/*Running pods; some may complete, nodes may be shut down and stuff*/
-		for t := range _test.Names {
+		for t, tag := range _test.Names {
 			cluster = testClusters[t]
 			for _, wn := range cluster.All_list() {
-				completed := wn.RunPods()
+				completed := wn.RunPods(tag)
 				if completed {
 					cluster.DeactivateWorkerNode(wn.ID)
 				}
@@ -240,10 +247,14 @@ func main_sequential() {
 func apply_solution(cluster *Cluster, pod *Pod, solution Solution, test_name string) {
 	if solution.rejected {
 		if _Log >= Log_Some {
-			log.Printf("pod %d rejected by test %s\n", pod.ID, test_name)
+			log.Printf("[%s]\tpod %d rejected\n", test_name, pod.ID)
 		}
 		cluster.PodRejected()
 	} else {
+		if _Log >= Log_Scores {
+			log.Printf("[%s]\tSolution with %d replicas (%d)\n", test_name, solution.n_replicas, solution.list_Ids())
+		}
+
 		// Apply solution
 		// Wake who needs to be awaken
 		for id, wn := range solution.Idle {
@@ -268,13 +279,16 @@ func apply_solution(cluster *Cluster, pod *Pod, solution Solution, test_name str
 }
 
 /*** These are the functions in the Callables vector ***/
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/** Greedy */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 		Greedy		 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 	placer_scoring_func func(*WorkerNode, *Pod) float32,
 ) Solution {
 	var solution Solution = NewSolution(pod)
 	var exclude_ids Set = make(Set)
+	var computed_scores = map[int]float32{}
 
 	var state_im_scanning = Active
 
@@ -283,12 +297,12 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 
 	var probabilities = []float64{}
 	var prob_atleast_half float64 = 0.
+	var theta = float64(pod.Criticality)
 
-	for prob_atleast_half < float64(pod.Criticality) {
-		/* Search greedily the best node
-		 */
-		id, score = find_best_wn(cluster.byState(state_im_scanning), pod,
-			true, exclude_ids,
+	for prob_atleast_half < theta {
+		/* Search greedily the best node */
+		id, score = find_best_wn(cluster.byState(state_im_scanning), pod, "Greedy",
+			true, exclude_ids, computed_scores,
 			placer_scoring_func, k8s_leastAllocated_condition,
 		)
 
@@ -314,7 +328,7 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 
 			probabilities = append(probabilities, best_node.Assurance.value())
 			prob_atleast_half = compute_probability_atLeastHalf(probabilities)
-			// log.Printf("Greedy: Add in solution node %d. Prob h+: %.12f (theta: %.12f)\n", best_node.ID, prob_atleast_half, pod.Criticality.value())
+			log.Printf("[K4.0 Greedy]: Prob h+: %.12f (theta = %.12f) \n", prob_atleast_half, theta)
 		}
 	}
 
@@ -324,31 +338,48 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 
 func find_best_wn(nodes map[int]*WorkerNode, pod *Pod,
 	//extra args
-	check_eligibility bool, exclude_ids Set,
+	log_algo_name string,
+	check_eligibility bool, exclude_ids Set, computed_scores map[int]float32,
 	placer_scoring_func func(*WorkerNode, *Pod) float32, placer_isBetter_eval_func func(float32, float32) bool,
 ) (int, float32) {
 	/*This function is used by Greedy and K8s !*/
 	var score float32
+	var exists bool
 	var bestScore float32 = -1.
 	var argbest int = -1
 	var initialized bool = false
 	for id, node := range nodes {
 		// If node is not among excluded, AND is eligible (or you don't need to check for eligibility)
+		// log.Printf("List of ecluded ids %s\n", exclude_ids)
 		if !exclude_ids.Contains(id) {
 			if !check_eligibility || node.EligibleFor(pod) {
+				// compute score and save it if not already computed
+				score, exists = computed_scores[id]
+				if !exists {
+					score = placer_scoring_func(node, pod)
+					computed_scores[id] = score
+				}
+
 				// If bool is cheaper than checking arithmetically each time
 				if !initialized {
-					score = placer_scoring_func(node, pod)
 					bestScore = score
 					argbest = id
 					initialized = true
 				} else {
-					score = placer_scoring_func(node, pod)
 					if placer_isBetter_eval_func(score, bestScore) {
 						bestScore = score
 						argbest = id
 					}
 				}
+				if _Log >= Log_Some {
+					log.Printf("\tScoring wn %d: score %.2f\n", id, score)
+				}
+			} else {
+				explain, reason := node.ExplainEligibility(pod)
+				if explain && _Log >= Log_All {
+					log.Printf("[%s]\tPod %d, Node %d ineligible. Reason %s\n", log_algo_name, pod.ID, node.ID, reason)
+				}
+				exclude_ids.Add(id) //Adding id to exclude it later
 			}
 		}
 	}
@@ -356,8 +387,11 @@ func find_best_wn(nodes map[int]*WorkerNode, pod *Pod,
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *      Dynamic        * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* Dynamic */
 /** Greedy approach */
+
 func adding_new_pod__dynamic(cluster *Cluster, pod *Pod,
 	placer_scoring_func func(*WorkerNode, *Pod) float32,
 ) Solution {
@@ -369,6 +403,7 @@ func adding_new_pod__dynamic(cluster *Cluster, pod *Pod,
 	var assurances []float64 // Probabilities
 	var references []*WorkerNode
 	var clusterstates []ClusterNodeState
+
 	if true { //Writing the arrays of scores and assurance. If true just to fold it
 		for _, node := range cluster.Active {
 			if node.EligibleFor(pod) {
@@ -381,12 +416,13 @@ func adding_new_pod__dynamic(cluster *Cluster, pod *Pod,
 				if _Log >= Log_All {
 					log.Printf("[Dynamic]\tNode %d, Pod %d. Score: %.2f\n", node.ID, pod.ID, scores[len(scores)-1])
 				}
+			} else {
+				explain, reason := node.ExplainEligibility(pod)
+				if explain && _Log >= Log_All {
+					log.Printf("[Dynamic]\tNode %d, Pod %d. Reason %s\n", node.ID, pod.ID, reason)
+				}
 			}
 		}
-		//Sort arrays
-		sortByPrimary(assurances, scores, references, clusterstates, func(a, b float64) bool {
-			return a < b
-		}, true)
 
 		// Check for errors
 		if len(scores) != len(assurances) {
@@ -394,15 +430,32 @@ func adding_new_pod__dynamic(cluster *Cluster, pod *Pod,
 			os.Exit(1)
 		}
 	}
-	_, el_solutions := _create_dynamic_programming_matrix(assurances, pod, placer_scoring_func, DP_Xkeep)
-	// If no solution (that has theta or more) has been found. Try again on all
+
+	/*Run DP : byScores*/
+	sortByPrimary_f32(scores, assurances, references, clusterstates, func(a, b float32) bool {
+		return a < b
+	}, true)
+	_, el_solutions := _create_dynamic_programming_matrix(assurances, pod, DP_Xkeep)
+	/*If no solution byScores, try byAssurance*/
+	if len(el_solutions) == 0 {
+		sortByPrimary_f64(assurances, scores, references, clusterstates, func(a, b float64) bool {
+			return a < b
+		}, true)
+		_, el_solutions = _create_dynamic_programming_matrix(assurances, pod, DP_Xkeep)
+	}
+
+	// If no solution (that has theta or more) using only Active nodes, Try again on all
 	if len(el_solutions) == 0 {
 		if true { //Writing the arrays of scores and assurance. If true just to fold it
+			var overprice_func = func(node *WorkerNode) int {
+				return int((node.EnergyCost * 15) / 10) //power_floor(1.15, len(node.pods))
+			}
+
 			for _, node := range cluster.Idle {
 				if node.EligibleFor(pod) {
 					// Filtering for eligibles
 					true_cost := node.EnergyCost
-					node.EnergyCost *= 2
+					node.EnergyCost = overprice_func(node)
 					scores = append(scores, placer_scoring_func(node, pod))
 					node.EnergyCost = true_cost
 
@@ -413,13 +466,13 @@ func adding_new_pod__dynamic(cluster *Cluster, pod *Pod,
 					if _Log >= Log_All {
 						log.Printf("[Dynamic]\tNode %d, Pod %d. Score: %.2f\n", node.ID, pod.ID, scores[len(scores)-1])
 					}
+				} else {
+					explain, reason := node.ExplainEligibility(pod)
+					if explain && _Log >= Log_All {
+						log.Printf("[Dynamic]\tNode %d, Pod %d. Reason %s\n", node.ID, pod.ID, reason)
+					}
 				}
 			}
-			//Sort arrays
-			sortByPrimary(assurances, scores, references, clusterstates, func(a, b float64) bool {
-				return a < b
-			}, true)
-
 			// Check for errors
 			if len(scores) != len(assurances) {
 				log.Printf("Errore, scores (%d) e assurances (%d) hanno dimensione diversa (in dynamic)\n", len(scores), len(assurances))
@@ -427,7 +480,20 @@ func adding_new_pod__dynamic(cluster *Cluster, pod *Pod,
 			}
 		}
 
-		_, el_solutions = _create_dynamic_programming_matrix(assurances, pod, placer_scoring_func, DP_Xkeep)
+		/*Run DP : byScores*/
+		sortByPrimary_f32(scores, assurances, references, clusterstates, func(a, b float32) bool {
+			return a < b
+		}, true)
+		_, el_solutions := _create_dynamic_programming_matrix(assurances, pod, DP_Xkeep)
+		/*If no solution byScores, try byAssurance*/
+		if len(el_solutions) == 0 {
+			sortByPrimary_f64(assurances, scores, references, clusterstates, func(a, b float64) bool {
+				return a < b
+			}, true)
+			_, el_solutions = _create_dynamic_programming_matrix(assurances, pod, DP_Xkeep)
+		}
+
+		/*If still no solution, reject*/
 		if len(el_solutions) == 0 {
 			solution.Reject()
 			return solution
@@ -444,10 +510,10 @@ type DP_Entry struct {
 	start             int
 	end               int
 	prob_atLeast_half float64
+	score             float32
 }
 
 func _create_dynamic_programming_matrix(p []float64, pod *Pod,
-	placer_scoring_func func(*WorkerNode, *Pod) float32,
 	x_keep int,
 ) ([][][]float64, map[int][]DP_Entry) {
 	// Init DP variables
@@ -506,7 +572,7 @@ func _create_dynamic_programming_matrix(p []float64, pod *Pod,
 				if _, exists := eligibles[this_amount]; !exists {
 					eligibles[this_amount] = make([]DP_Entry, 0)
 				}
-				eligibles[this_amount] = append(eligibles[this_amount], DP_Entry{i, j, prob_atleast_half})
+				eligibles[this_amount] = append(eligibles[this_amount], DP_Entry{i, j, prob_atleast_half, -1})
 			}
 		}
 	}
@@ -524,6 +590,8 @@ func choose_DP_entry(eligibles map[int][]DP_Entry, scores []float32) DP_Entry {
 			for i := entry.start; i <= entry.end; i++ {
 				score += scores[i]
 			}
+			entry.score = score
+
 			if best_score < 0 || score < best_score {
 				best_score = score
 				best_entry = entry
@@ -537,11 +605,16 @@ func choose_DP_entry(eligibles map[int][]DP_Entry, scores []float32) DP_Entry {
 
 func _update_solution(solution *Solution, dp_entry DP_Entry, references []*WorkerNode, states []ClusterNodeState) int {
 	for idx := dp_entry.start; idx <= dp_entry.end; idx++ {
+		if _Log >= Log_Scores {
+			log.Printf("[Dynamic] best entry: node %d\n", references[idx].ID)
+		}
 		solution.AddToSolution(states[idx], references[idx])
 	}
 	return solution.n_replicas
 }
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *		K8s		* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /*K8s*/
 func adding_new_pod__k8s(cluster *Cluster, pod *Pod,
@@ -549,18 +622,23 @@ func adding_new_pod__k8s(cluster *Cluster, pod *Pod,
 ) Solution {
 	var solution Solution = NewSolution(pod)
 	var exclude_ids Set = make(Set)
+	var computed_scores = map[int]float32{}
 
 	var id int = -1
 	var score float32 = -1.
 
 	var probabilities = []float64{}
 	var prob_atleast_half float64 = 0.
+	var theta = float64(pod.Criticality)
 
 	// Find best among ALL nodes
 	var allNodes_map = cluster.All_map()
 
-	for prob_atleast_half < float64(pod.Criticality) {
-		id, score = find_best_wn(allNodes_map, pod, true, exclude_ids, placer_scoring_func, k8s_leastAllocated_condition)
+	for prob_atleast_half < theta {
+		/* Search greedily the best node */
+		id, score = find_best_wn(allNodes_map, pod, "K8s",
+			true, exclude_ids, computed_scores,
+			placer_scoring_func, k8s_leastAllocated_condition)
 
 		if id < 0 {
 			solution.Reject()
@@ -578,6 +656,7 @@ func adding_new_pod__k8s(cluster *Cluster, pod *Pod,
 
 		probabilities = append(probabilities, node.Assurance.value())
 		prob_atleast_half = compute_probability_atLeastHalf(probabilities)
+		log.Printf("[K8s]: Prob h+: %.12f (theta = %.12f) \n", prob_atleast_half, theta)
 	}
 
 	// log.Printf("%s\n", solution)

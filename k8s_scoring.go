@@ -1,5 +1,7 @@
 package main
 
+import "log"
+
 /********************** K8s Scorer **********************/
 
 func k8s_leastAllocated_score(node *WorkerNode, p *Pod) float32 {
@@ -49,7 +51,7 @@ func _computationPower_ratio(node *WorkerNode, pod *Pod) float32 {
 }
 
 func _log10_assurance(node *WorkerNode, pod *Pod) float32 {
-	return -log10_f32(node.Assurance.value()) / 10.
+	return -log10_f32(1.-node.Assurance.value()) / 10.
 }
 
 /********************** Multiple things aware **********************/
@@ -71,9 +73,14 @@ func init_scoring_params(test Test) {
 	}
 }
 
+var __tmp = []string{"k8s placer", "energy cost", "comput power", "log assurance"}
+
 func evaluate_score(node *WorkerNode, p *Pod) float32 {
 	var score float32 = 0.
 	for i, f := range _funcs {
+		if _Log >= Log_Scores {
+			log.Printf("Eval score (%s) \t%.2f * %.2f = %.2f\n", __tmp[i], f(node, p), _weights[i], f(node, p)*_weights[i])
+		}
 		score += f(node, p) * _weights[i]
 	}
 

@@ -11,7 +11,6 @@ type Pod struct {
 	Disk        BasicResourceType
 	RAM         BasicResourceType
 	Criticality _Criticality
-	replicas    int //to do
 
 	computation_left float32
 	// completion_notified		bool
@@ -19,16 +18,16 @@ type Pod struct {
 
 // Create
 func createRandomPod(id int) *Pod {
-	const _RESOURCE_MIN int = 2
-	const _RESOURCE_MAX int = 15
+	const _RESOURCE_MIN int = 3
+	const _RESOURCE_MAX int = 18
 	const _RESOURCE_UNIT int = 50
-	const _LIM_MAX_RATIO float32 = 2.5
+	const _LIM_MAX_RATIO float32 = 3.
 
 	const _LOAD_REPLICAS_MIN int = 1
 	const _LOAD_REPLICAS_MAX int = 5
 
-	const _CP_MIN int = 10
-	const _CP_MAX_PERC int = 10 // = m*_CP_MAX_PERC/100
+	const _CP_MIN int = 15
+	const _CP_MAX_PERC int = 15 // = m*_CP_MAX_PERC/100
 
 	var rnd float32 = rand_01()
 	var rt bool = rnd >= 0.5
@@ -93,15 +92,6 @@ func createRandomPod(id int) *Pod {
 	if m < 100 {
 		cp_left *= 100
 	}
-	// Replicas
-	var replicas int = 1
-	if crit >= MidCriticality {
-		replicas += 2
-	}
-	if crit >= HighCriticality {
-		replicas += 2
-	}
-	// replicas += rand_ab_int(_LOAD_REPLICAS_MIN, _LOAD_REPLICAS_MAX)
 
 	return &Pod{
 		ID:               id,
@@ -111,7 +101,6 @@ func createRandomPod(id int) *Pod {
 		RealTime:         rt,
 		Criticality:      crit,
 		computation_left: cp_left,
-		replicas:         replicas,
 	}
 }
 
@@ -125,8 +114,6 @@ func (p Pod) Copy() *Pod {
 		Criticality: p.Criticality,
 
 		computation_left: p.computation_left,
-
-		replicas: p.replicas,
 	}
 }
 

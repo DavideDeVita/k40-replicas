@@ -262,3 +262,14 @@ func (s Solution) String() string {
 	result += "\n"
 	return result
 }
+
+func (s Solution) list_Ids() []int{
+	ret := []int{}
+	for id, _ := range s.Active {
+		ret = append(ret, id)
+	}
+	for id, _ := range s.Idle {
+		ret = append(ret, id)
+	}
+	return ret
+}
