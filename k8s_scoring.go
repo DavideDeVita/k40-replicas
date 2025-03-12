@@ -51,7 +51,21 @@ func _computationPower_ratio(node *WorkerNode, pod *Pod) float32 {
 }
 
 func _log10_assurance(node *WorkerNode, pod *Pod) float32 {
-	return -log10_f32(1.-node.Assurance.value()) / 10.
+	return 1. - (-log10_f32(1.-node.Assurance.value()) / 10.)
+}
+
+func _log10_assurance_wasteless(node *WorkerNode, pod *Pod) float32 {
+	if node.Assurance.value() >= pod.Criticality.value() {
+		return 0.
+	}
+	return 1. - (-log10_f32(1.-node.Assurance.value()) / 10.)
+}
+
+func _rt_waste(node *WorkerNode, pod *Pod) float32 {
+	if node.RealTime && !pod.RealTime {
+		return 1.
+	}
+	return 0.
 }
 
 /********************** Multiple things aware **********************/
@@ -73,7 +87,7 @@ func init_scoring_params(test Test) {
 	}
 }
 
-var __tmp = []string{"k8s placer", "energy cost", "comput power", "log assurance"}
+var __tmp = []string{"k8s placer", "energy cost", "comput power", "log assurance", "rt waste"}
 
 func evaluate_score(node *WorkerNode, p *Pod) float32 {
 	var score float32 = 0.

@@ -217,9 +217,9 @@ func (wn *WorkerNode) ExplainEligibility(pod *Pod) (bool, string) {
 		if !(wn.RealTime || !pod.RealTime) {
 			return false, "Run time eligibility violated"
 		} else {
-			return true, fmt.Sprintf("Resource insufficient:\n\tPod req: %d, %d, %d\n\tWN status: %d, %d, %d\n", 
-			pod.CPU.request, pod.Disk.request, pod.RAM.request, 
-			wn.status.unrequestedCPU, wn.status.unrequestedDisk, wn.status.unrequestedRAM)
+			return true, fmt.Sprintf("Resource insufficient:\n\tPod req: %d, %d, %d\n\tWN status: %d, %d, %d\n",
+				pod.CPU.request, pod.Disk.request, pod.RAM.request,
+				wn.status.unrequestedCPU, wn.status.unrequestedDisk, wn.status.unrequestedRAM)
 		}
 	}
 }
@@ -252,11 +252,24 @@ func (wn *WorkerNode) RemovePod(pod *Pod) {
 func (wn *WorkerNode) RunPods(algoTag string) bool {
 	r := float64(rand_01())
 	var interference bool = r > wn.Assurance.value() // there is interference if randomValue is greater than assurance (assurance is chance of not having interference)
+	var heavyInteference bool = interference && rand_ab_int(0, int(-log10_f32(1.-wn.Assurance.value())))==0		// heavy interference means no execution
+	if interference && (len(wn.pods) > 0) && _Log >= Log_Scores {
+		podlist := "\tPods affected: "
+		for _, p := range wn.pods {
+			podlist += fmt.Sprint(p.ID) + ", "
+		}
+		podlist = podlist[:len(podlist)-2]
+		if heavyInteference{
+			log.Printf("[%s] Worker Node %d heavy interference.%s\n", algoTag, wn.ID, podlist)
+		}else{
+			log.Printf("[%s] Worker Node %d interference.%s\n", algoTag, wn.ID, podlist)
+		}
+	}
 
 	if len(wn.pods) > 0 {
 		completed := make([]*Pod, 0)
 		for _, pod := range wn.pods {
-			complete := pod.Run(wn, interference)
+			complete := pod.Run(wn, interference, heavyInteference)
 			if complete {
 				if _Log >= Log_Some {
 					log.Printf("[%s] Pod %d completed on worker node %d\n", algoTag, pod.ID, wn.ID)

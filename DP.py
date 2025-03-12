@@ -1,4 +1,71 @@
 # Algo 0
+def highest_chance_no_issues__ifWorseIgnore(n, probabilities, theta, overkill_size=1):
+    # Initialize a 3D DP table
+    dp = [[[0.0 for _ in range(n + 1)] for _ in range(n + 1)] for _ in range(n + 1)]
+    dp[0][0][0] = 1.0  # Base case: No nodes, no selection, no successes
+        # k is number of successes
+
+    eligibles = {}
+    first_eligible_size=-1
+
+    # Fill the DP table
+    for i in range(1, n + 1):  # Iterate over nodes
+        for j in range(i + 1):  # Iterate over number of selected nodes // at most i
+            # Early stop: If this instance would have "size" greater than min_size + overkill
+            if first_eligible_size!=-1 and j > first_eligible_size+overkill_size:
+                continue
+            
+            #compute the "if (i-1) added to [i-1][j-1] line". If sum from j//2+1 > sum for [i-1][j] save line, else repeat previous
+            for k in range(j + 1):  # Iterate over number of successes  // at most j
+                # default is always 0
+                # Include the i-th item
+                if j > 0:
+                    dp[i][j][k] += dp[i-1][j-1][k] * (1. -probabilities[i-1])   # In solution but fails
+                    if k > 0: #Can account for a success?
+                        dp[i][j][k] += dp[i-1][j-1][k-1] * probabilities[i-1]   # In solution but success
+                else:
+                    dp[i][j][k] = 1.
+                # print(f"dp[{i}][{j}][{k}] = {dp[i][j][k]}")
+            
+            #compare with no insert in solution
+            prob_if_in_solution = sum(dp[i][j][(j//2)+1:j+1])
+            # print(i, j, f"p{(j//2)+1}+:", prob_if_in_solution, "theta:", theta)
+            prob_if_not = sum(dp[i-1][j][(j//2)+1:j+1])
+            if prob_if_not > prob_if_in_solution:
+                # print(i, j, " better excl", prob_if_in_solution, "<", prob_if_not)
+                for k in range(j + 1):  # Iterate over number of successes  // at most j
+                    dp[i][j][k] = dp[i-1][j][k]
+            else:
+                #Eligible
+                if prob_if_in_solution >= theta:
+                    if first_eligible_size==-1 or first_eligible_size>j:
+                        # print(f"Found min {i=}, {j=}")
+                        first_eligible_size=j
+
+                    if j not in eligibles:
+                        eligibles[j] = {}
+                    # print("backtracking", i, j)
+                    _i = i-1
+                    _j = j-1
+                    sol = [i]
+                    while _j>0:
+                        if dp[_i][_j][_j] != dp[_i-1][_j][_j]:
+                            sol.append(_i)
+                            _j-=1
+                        _i-=1
+                    eligibles[j][tuple(sol)] = prob_if_in_solution
+                    # print("Adding ", tuple(sol), "with p:", prob_if_in_solution)
+
+
+    for j in range(first_eligible_size+overkill_size+1, n):
+        if j in eligibles:
+            print(f"{len(eligibles[j])} solutions of size {j} should be removed")
+            eligibles.pop(j)
+
+    return dp, eligibles, first_eligible_size+overkill_size
+    
+
+# Algo 1 (is like 0 but puts in solution if <theta before chacking if "no put" is better)
 def highest_chance_no_issues(n, probabilities, theta, overkill_size=1):
     # Initialize a 3D DP table
     dp = [[[0.0 for _ in range(n + 1)] for _ in range(n + 1)] for _ in range(n + 1)]
@@ -20,33 +87,43 @@ def highest_chance_no_issues(n, probabilities, theta, overkill_size=1):
                 # default is always 0
                 # Include the i-th item
                 if j > 0:
-                    dp[i][j][k] += dp[i-1][j-1][k] * (1 - probabilities[i-1])   # In solution but fails
+                    dp[i][j][k] += dp[i-1][j-1][k] * (1. -probabilities[i-1])   # In solution but fails
                     if k > 0: #Can account for a success?
                         dp[i][j][k] += dp[i-1][j-1][k-1] * probabilities[i-1]   # In solution but success
                 else:
                     dp[i][j][k] = 1.
+                # print(f"dp[{i}][{j}][{k}] = {dp[i][j][k]}")
             
             #compare with no insert in solution
             prob_if_in_solution = sum(dp[i][j][(j//2)+1:j+1])
+            # print(i, j, f"p{(j//2)+1}+:", prob_if_in_solution, "theta:", theta)
             prob_if_not = sum(dp[i-1][j][(j//2)+1:j+1])
-            if prob_if_not > prob_if_in_solution:
-                print(i, j, " better excl", prob_if_in_solution, "<", prob_if_not)
-                for k in range(j + 1):  # Iterate over number of successes  // at most j
-                    dp[i][j][k] = dp[i-1][j][k]
-                
-                # if i == n:
-                #     prob_atleast_half[j] = prob_if_not
-            else:
-                if prob_if_in_solution >= theta:
+            if prob_if_in_solution >= theta:
+                    # is min size
                     if first_eligible_size==-1 or first_eligible_size>j:
-                        print(f"Found min {i=}, {j=}")
+                        # print(f"Found min {i=}, {j=}")
                         first_eligible_size=j
 
                     if j not in eligibles:
-                        eligibles[j] = []
-                    eligibles[j].append(i)
-                # if i == n:
-                #     prob_atleast_half[j] = prob_if_in_solution
+                        eligibles[j] = {}
+                    # print("backtracking", i, j)
+                    _i = i-1
+                    _j = j-1
+                    sol = [i]
+                    while _j>0:
+                        if dp[_i][_j][_j] != dp[_i-1][_j][_j]:
+                            sol.append(_i)
+                            _j-=1
+                        _i-=1
+                    eligibles[j][tuple(sol)] = prob_if_in_solution
+                    # print("Adding ", tuple(sol), "with p:", prob_if_in_solution)
+
+            if prob_if_not > prob_if_in_solution:
+                # print(i, j, " better excl", prob_if_in_solution, "<", prob_if_not)
+                for k in range(j + 1):  # Iterate over number of successes  // at most j
+                    dp[i][j][k] = dp[i-1][j][k]
+                
+
 
     for j in range(first_eligible_size+overkill_size+1, n):
         if j in eligibles:
@@ -54,62 +131,59 @@ def highest_chance_no_issues(n, probabilities, theta, overkill_size=1):
             eligibles.pop(j)
 
     return dp, eligibles, first_eligible_size+overkill_size
-    
 
-# Algo 1
-def find_eligibles_bySize(n, probabilities, theta, overkill_size=1):
+
+# Algo 2 (is like 0 but puts in solution if <theta before chacking if "no put" is better)
+def highest_chance_no_issues__Break(n, probabilities, theta):
     # Initialize a 3D DP table
     dp = [[[0.0 for _ in range(n + 1)] for _ in range(n + 1)] for _ in range(n + 1)]
     dp[0][0][0] = 1.0  # Base case: No nodes, no selection, no successes
-        # i is nodes considered [0:i]
-        # j is nodes in solution
         # k is number of successes
 
-    eligibles = {}
-    first_eligible_size=-1
+    first_eligible, first_eligible_size, el_prob = (), -1, 1.
 
     # Fill the DP table
     for i in range(1, n + 1):  # Iterate over nodes
         for j in range(i + 1):  # Iterate over number of selected nodes // at most i
-            # Early stop: If this instance would have "size" greater than min_size + overkill
-            if first_eligible_size!=-1 and j > first_eligible_size+overkill_size:
+            if first_eligible_size>0 and j>first_eligible_size:
                 continue
-            
+
             #compute the "if (i-1) added to [i-1][j-1] line". If sum from j//2+1 > sum for [i-1][j] save line, else repeat previous
             for k in range(j + 1):  # Iterate over number of successes  // at most j
                 # default is always 0
                 # Include the i-th item
                 if j > 0:
-                    dp[i][j][k] += dp[i-1][j-1][k] * (1 - probabilities[i-1])   # In solution but fails
+                    dp[i][j][k] += dp[i-1][j-1][k] * (1. -probabilities[i-1])   # In solution but fails
                     if k > 0: #Can account for a success?
                         dp[i][j][k] += dp[i-1][j-1][k-1] * probabilities[i-1]   # In solution but success
                 else:
                     dp[i][j][k] = 1.
-            #-endfor
+                # print(f"dp[{i}][{j}][{k}] = {dp[i][j][k]}")
+            
+            if first_eligible_size<1 or j<first_eligible_size:
+                #compare with no insert in solution
+                prob_if_in_solution = sum(dp[i][j][(j//2)+1:j+1])
+                print(i, j, f"p{(j//2)+1}+:", prob_if_in_solution, "theta:", theta)
+                if prob_if_in_solution >= theta:
+                        # print("backtracking", i, j)
+                        _i = i-1
+                        _j = j-1
+                        sol = [i]
+                        while _j>0:
+                            if dp[_i][_j][_j] != dp[_i-1][_j][_j]:
+                                sol.append(_i)
+                                _j-=1
+                            _i-=1
+                        first_eligible, first_eligible_size, el_prob = tuple(sol), len(sol), prob_if_in_solution
+                        print("---------- Adding ", tuple(sol), "with p:", prob_if_in_solution)
 
-            prob_if_in_solution = sum(dp[i][j][(j//2)+1:j+1])
-            prob_if_not = sum(dp[i-1][j][(j//2)+1:j+1])
-
-            if prob_if_in_solution >= theta  and  prob_if_in_solution>prob_if_not:
-                if first_eligible_size==-1 or first_eligible_size>j:
-                    print(f"Found min {i=}, {j=}")
-                    first_eligible_size=j
-
-                if j not in eligibles:
-                    eligibles[j] = []
-                eligibles[j].append(i)
-            elif prob_if_in_solution >= theta  and  prob_if_in_solution==prob_if_not:
-                print("indiff", i, j)
-
-    for j in range(first_eligible_size+overkill_size+1, n):
-        if j in eligibles:
-            print(f"{len(eligibles[j])} solutions of size {j} should be removed")
-            eligibles.pop(j)
-
-    return dp, eligibles, first_eligible_size+overkill_size
+    return dp, first_eligible, el_prob
 
 
-# Algo 2
+def permutate_min_solution (probabilities, firstSolution, theta):
+    pass
+
+# Algo 3
 def DP_getEligibles_streak(p, theta, overkill_size=1):
     """
     Calculate the probability of at least m true variables over all possible ranges,
@@ -166,7 +240,7 @@ def DP_getEligibles_streak(p, theta, overkill_size=1):
     return dp, eligibles, pairs_count, pairs_skipped, triplets_count  # Return the full DP table
 
 
-# Algo 3
+# Algo 4
 from itertools import combinations
 def search_all_combinations(p, theta, *, overkill_size=1):
     nodes = [i for i in range(len(p))]
@@ -210,27 +284,33 @@ def search_all_combinations(p, theta, *, overkill_size=1):
     return eligibles
 
 
+
+def is_eligible(p, sol, theta):
+    s = sum( [p[i-1] for i in sol])
+    return s>=theta*len(sol)    
+
+
 # TO DO:
 #     > In insert_pod_dp try aorting per score
 #     > Here, try new algo stopping when you find the first eligible (you can propagate from there e.g. if (0 3 5) is first eligible any x y z where x>=0, y>=3, z>=5 )
 
 import time
 # Example usage
-algo=1
+algo=2
 if __name__ == "__main__":
     p = [0.9999995, 0.999999, 0.999995, 0.99999, 0.99995, 0.9999, 0.9995, 0.999, 0.995, 0.99] * 5  # Probabilities of each variable being True
     # p = [0.999999, 0.999995, 0.99999, 0.99999, 0.99995, 0.9999, 0.9995, 0.999, 0.995, 0.99]  # Probabilities of each variable being True
     n = len(p)
 
-    theta = 0.99999995
-
+    theta = 0.999999995
     p.sort()
+
 
     if algo==0:
         # Example Usage
+        dp, eligibles, maxSize = highest_chance_no_issues__ifWorseIgnore(n, p, theta) #, overkill_size=2)
 
-        p.sort(reverse=True)
-        dp, eligibles, maxSize = highest_chance_no_issues(n, p, theta)
+        print("\n\nAlgo", algo)
 
         if n<15:
             for i in range(1, n+1):
@@ -248,14 +328,18 @@ if __name__ == "__main__":
                     print()
                 print()
         
-        for size in range(1, n+1):
+        for size in range(1, maxSize+1):
             if size in eligibles:
-                print("Using ", size, "nodes.\n\tEligible solutions for 'i' in", eligibles[size])
+                print(f"Using {size} nodes, {len(eligibles[size])} eligible solutions:")
+                for t_sol, prob_h in eligibles[size].items():
+                    print(f"\t{t_sol}: {[p[i-1] for i in t_sol]} -> {prob_h}")
 
 
     elif algo==1:
         # Example Usage
-        dp, eligibles, maxSize = find_eligibles_bySize(n, p, theta)
+        dp, eligibles, maxSize = highest_chance_no_issues(n, p, theta)
+
+        print("\nAlgo", algo)
 
         if n<15:
             for i in range(1, n+1):
@@ -273,12 +357,77 @@ if __name__ == "__main__":
                     print()
                 print()
         
-        for size in range(1, n+1):
+        for size in range(1, maxSize+1):
             if size in eligibles:
-                print("Using ", size, "nodes.\n\tEligible solutions for 'i' in", eligibles[size])
+                print(f"Using {size} nodes, {len(eligibles[size])} eligible solutions:")
+                for t_sol, prob_h in eligibles[size].items():
+                    print(f"\t{t_sol}: {[p[i-1] for i in t_sol]} -> {prob_h}")
 
 
     elif algo==2:
+        def all_unique(lst):
+            return len(lst) == len(set(lst))
+        
+        # p.sort()
+
+        # Example Usage
+        dp, firstEligible, firstEligibleProb = highest_chance_no_issues__Break(n, p, theta)
+
+        print("\nAlgo", algo)
+
+        print(firstEligible, "prob:", firstEligibleProb)
+
+        eligibles_neigh = [firstEligible]
+        size = len(firstEligible)
+
+        # permutate
+        i = 0
+        while i<len(eligibles_neigh):
+            el = eligibles_neigh[i]
+            print(i, ":", el)
+            for idx in range(size):
+                for jdx in range(size):
+                    if idx==jdx:
+                        continue
+                    if el[idx] == n or el[jdx]==1:
+                        continue
+                    newT = list(el)
+                    newT[idx] += 1
+                    newT[jdx] -= 1
+                    newT.sort(reverse=True)
+                    newT = tuple(newT)
+                    print("newtT=", newT)
+                    if all_unique(newT) and newT not in eligibles_neigh:
+                        if  is_eligible(p, newT, theta):
+                            print("appending", newT)
+                            eligibles_neigh.append(tuple(newT))
+            i+=1
+
+        # all greater
+        eligibles = set(eligibles_neigh)
+
+        for el in eligibles_neigh:
+            newT = list(el[:])
+            print(el)
+            while newT[0] <= n:
+                newT[-1] += 1
+                if newT[-1] > n:
+                    idx = size-1
+                    while idx>0 and newT[idx] > n:
+                        newT[idx] = el[idx]
+                        newT[idx-1] += 1
+                        idx -= 1
+                
+                if all_unique(newT):
+                    eligibles.add(tuple(newT))
+        
+        print(f"Using {size} nodes, {len(eligibles)} eligible solutions:")
+        for t_sol in eligibles:
+            print(f"\t{t_sol}: ")
+            print(f"\t{t_sol}: {[p[i-1] for i in t_sol]}")
+
+        
+    elif algo==3:
         p.sort(reverse = True)
         # p = [0.9999, 0.9995, 0.999, 0.995, 0.99]  # Probabilities of each variable being True
 
@@ -313,17 +462,18 @@ if __name__ == "__main__":
         print(f"Ran {pairs} pairs out of exp {n**2}: {(100.*pairs/n**2):.4f}%\nRan {pairs} pairs out of really {p_skip+pairs}: {(100.*pairs/(p_skip+pairs)):.4f}%\nSkipped {p_skip} pairs out of {pairs+p_skip}: {(100.*p_skip/(pairs+p_skip)):.4f}%\nTriplets ran: {triplets} out of {n**3}: {(100.*triplets/n**3):.4f}%\n")
 
 
-    elif algo == 3:
+    elif algo == 4:
         # Example Usage
-        eligibles = search_all_combinations(p, theta)
+        eligibles = search_all_combinations(p, theta, overkill_size=0)
         
 
         for size in range(1, n+1):
             if size in eligibles:
                 print("Using ", size, "nodes. ", len(eligibles[size])," available solutions\n")
 
-                for s in eligibles[size]:
-                    print(f"\tNodes: {s[:-1]}\t p: {s[-1]:.12f} %\n")
+                for sol in eligibles[size]:
+                    print(f"\tNodes: {sol[:-1]}\t p: {sol[-1]:.12f} %\n")
+
 
 
 if __name__ == "__main__for":
@@ -335,19 +485,18 @@ if __name__ == "__main__for":
 
     theta = 0.99999995
 
-    for algo in range(4):
+    p.sort()
 
-        p.sort()
+    for algo in range(3):   #(4)
 
         start = time.perf_counter()
 
-        
 
         if algo==0:
             # Example Usage
+            dp, eligibles, maxSize = highest_chance_no_issues__ifWorseIgnore(n, p, theta) #, overkill_size=2)
 
-            p.sort(reverse=True)
-            dp, eligibles, maxSize = highest_chance_no_issues(n, p, theta)
+            print("\n\nAlgo", algo)
 
             if n<15:
                 for i in range(1, n+1):
@@ -365,14 +514,20 @@ if __name__ == "__main__for":
                         print()
                     print()
             
-            for size in range(1, n+1):
+            for size in range(1, maxSize+1):
                 if size in eligibles:
-                    print("Using ", size, "nodes.\n\tEligible solutions for 'i' in", eligibles[size])
+                    print(f"Using {size} nodes, {len(eligibles[size])} eligible solutions:")
+                    for t_sol, prob_h in eligibles[size].items():
+                        print(f"\t{t_sol}: {[p[i-1] for i in t_sol]} -> {prob_h}")
+
+                    sol[algo] += len(eligibles[size])
 
 
         elif algo==1:
             # Example Usage
-            dp, eligibles, maxSize = find_eligibles_bySize(n, p, theta)
+            dp, eligibles, maxSize = highest_chance_no_issues(n, p, theta)
+
+            print("\nAlgo", algo)
 
             if n<15:
                 for i in range(1, n+1):
@@ -390,12 +545,75 @@ if __name__ == "__main__for":
                         print()
                     print()
             
-            for size in range(1, n+1):
+            for size in range(1, maxSize+1):
                 if size in eligibles:
-                    print("Using ", size, "nodes.\n\tEligible solutions for 'i' in", eligibles[size])
-        
-        
+                    print(f"Using {size} nodes, {len(eligibles[size])} eligible solutions:")
+                    for t_sol, prob_h in eligibles[size].items():
+                        print(f"\t{t_sol}: {[p[i-1] for i in t_sol]} -> {prob_h}")
+                    
+                    sol[algo] += len(eligibles[size])
+
+
         elif algo==2:
+            def all_unique(lst):
+                return len(lst) == len(set(lst))
+            # p.sort()
+
+            # Example Usage
+            dp, firstEligible, firstEligibleProb = highest_chance_no_issues__Break(n, p, theta)
+
+            print("\nAlgo", algo)
+
+            eligibles_neigh = [firstEligible]
+            size = len(firstEligible)
+
+            # permutate
+            i = 0
+            while i<len(eligibles_neigh):
+                el = eligibles_neigh[i]
+                print(i, ":", el)
+                for idx in range(size):
+                    for jdx in range(size):
+                        if idx==jdx:
+                            continue
+                        newT = list(el)
+                        newT[idx] += 1
+                        newT[jdx] -= 1
+                        newT.sort(reverse=True)
+                        newT = tuple(newT)
+                        print("newtT=", newT)
+                        if all_unique(newT) and newT not in eligibles_neigh:
+                            if  is_eligible(p, newT, theta):
+                                print("appending", newT)
+                                eligibles_neigh.append(tuple(newT))
+                i+=1
+
+            # all greater
+            eligibles = set(eligibles_neigh)
+
+            for el in eligibles_neigh:
+                newT = list(el[:])
+                while newT[0] <= n:
+                    newT[-1] += 1
+                    if newT[-1] > n:
+                        idx = size-1
+                        while idx>0 and newT[idx] > n:
+                            newT[idx] = el[idx]
+                            newT[idx-1] += 1
+                            idx -= 1
+                    
+                    if all_unique(newT):
+                        eligibles.add(tuple(newT))
+            
+            print(f"Using {size} nodes, {len(eligibles[size])} eligible solutions:")
+            for t_sol in eligibles:
+                print(f"\t{t_sol}: {[p[i-1] for i in t_sol]}")
+            
+            sol[algo] = len(eligibles)
+
+        
+
+        elif algo==3:
             p.sort(reverse = True)
             # p = [0.9999, 0.9995, 0.999, 0.995, 0.99]  # Probabilities of each variable being True
 
@@ -432,7 +650,7 @@ if __name__ == "__main__for":
             print(f"Ran {pairs} pairs out of exp {n**2}: {(100.*pairs/n**2):.4f}%\nRan {pairs} pairs out of really {p_skip+pairs}: {(100.*pairs/(p_skip+pairs)):.4f}%\nSkipped {p_skip} pairs out of {pairs+p_skip}: {(100.*p_skip/(pairs+p_skip)):.4f}%\nTriplets ran: {triplets} out of {n**3}: {(100.*triplets/n**3):.4f}%\n")
 
 
-        elif algo == 3:
+        elif algo == 4:
             # Example Usage
             eligibles = search_all_combinations(p, theta)
             
@@ -450,5 +668,5 @@ if __name__ == "__main__for":
         end = time.perf_counter()
         t.append(end-start)
 
-    for algo in range(4):
+    for algo in range(3):   #4
         print(f"Algo {algo}: {sol[algo]} solutions\t\t{t[algo]:.12f} seconds")

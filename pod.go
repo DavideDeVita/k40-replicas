@@ -23,11 +23,14 @@ func createRandomPod(id int) *Pod {
 	const _RESOURCE_UNIT int = 50
 	const _LIM_MAX_RATIO float32 = 3.
 
-	const _LOAD_REPLICAS_MIN int = 1
-	const _LOAD_REPLICAS_MAX int = 5
+	// const _LOAD_REPLICAS_MIN int = 1
+	// const _LOAD_REPLICAS_MAX int = 5
 
 	const _CP_MIN int = 15
-	const _CP_MAX_PERC int = 15 // = m*_CP_MAX_PERC/100
+	var _CP_MAX_func func(int)int = func(tot_pods int)int {
+		return int(150.*(log10_int(tot_pods)-2.))+_CP_MIN		// 100.*
+	} 
+	// const _CP_MAX_PERC func(int)int = 15 // = m*_CP_MAX_PERC/100
 
 	var rnd float32 = rand_01()
 	var rt bool = rnd >= 0.5
@@ -88,10 +91,10 @@ func createRandomPod(id int) *Pod {
 		limit:   lim,
 	}
 	// Computation left(
-	var cp_left float32 = float32(rand_ab_int(_CP_MIN, (m*_CP_MAX_PERC)/100))
-	if m < 100 {
-		cp_left *= 100
-	}
+	var cp_left float32 = float32(rand_ab_int(_CP_MIN, _CP_MAX_func(m)))
+	// if m < 100 {
+	// 	cp_left *= 100
+	// }
 
 	return &Pod{
 		ID:               id,
@@ -132,10 +135,12 @@ func (p Pod) String() string {
 
 /* Run */
 
-func (p *Pod) Run(wn *WorkerNode, interference bool) bool {
+func (p *Pod) Run(wn *WorkerNode, interference bool, heavyInterference bool) bool {
 	var mult float32 = 1.
-	if interference { //in this version, if there is interference just cancel out the entire computation for this iteration
+	if heavyInterference { // heavy I. means cancel out the entire computation for this iteration
 		mult = 0.
+	}else if interference { //simple I. means cancel half (?)
+		mult = 0.5
 	}
 	p.computation_left -= float32(wn.Computation_Power) * mult
 	// p.computation_left -= 1. * mult

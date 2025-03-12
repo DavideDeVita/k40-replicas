@@ -64,6 +64,10 @@ func log10_f32(val float64) float32 {
 	return float32(math.Log10(val))
 }
 
+func log10_int(val int) float64 {
+	return math.Log10(float64(val))
+}
+
 func float_to_str(num float32, dig int) string {
 	// Format the float with 2 decimal places
 	var formatted string

@@ -45,3 +45,33 @@ func (s Set) ToSlice() []int {
     }
     return elements
 }
+
+
+//##############################################################################
+//              Functions used by Set of tuples ([]int) in DP
+func containsSlice(slices [][]int, target []int) bool {
+	for _, s := range slices {
+		if equalSlices(s, target) {
+			return true
+		}
+	}
+	return false
+}
+
+// Helper function to check if two slices are equal
+func equalSlices(a, b []int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// Convert slice to string for use as a map key
+func sliceToString(s []int) string {
+	return fmt.Sprint(s)
+}
