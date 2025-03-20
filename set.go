@@ -1,7 +1,20 @@
 package main
 
+import "fmt"
+
 // Create a set using a map with struct{} as the value type
 type Set map[int]struct{}
+
+func (s Set) String() string{
+    ret := "{"
+    if s.Size()>0{
+        for k := range s{
+            ret += fmt.Sprint(k)+", "
+        }
+        ret = ret[:len(ret)-2]
+    }
+    return ret+"}"
+}
 
 // Add an element to the set
 func (s Set) Add(element int) {
@@ -31,4 +44,34 @@ func (s Set) ToSlice() []int {
         elements = append(elements, key)
     }
     return elements
+}
+
+
+//##############################################################################
+//              Functions used by Set of tuples ([]int) in DP
+func containsSlice(slices [][]int, target []int) bool {
+	for _, s := range slices {
+		if equalSlices(s, target) {
+			return true
+		}
+	}
+	return false
+}
+
+// Helper function to check if two slices are equal
+func equalSlices(a, b []int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// Convert slice to string for use as a map key
+func sliceToString(s []int) string {
+	return fmt.Sprint(s)
 }

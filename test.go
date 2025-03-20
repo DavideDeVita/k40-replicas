@@ -1,116 +1,96 @@
 package main
 
 type Test struct {
-	name      string
-	Names     []string
-	Callables []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution
-	Scoring   []func(*WorkerNode, *Pod) float32
+	name           string
+	Names          []string
+	Algo_callables []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution
+	Is_multiparam  []bool
 
-	MultiAware *MultiAwareParams
+	Placing_scorer  func(*WorkerNode, *Pod) float32
+	Placing_w       float32
+	Multi_obj_funcs []func(*WorkerNode, *Pod) float32
+	Multi_obj_w     []float32
+	Multi_obj_names []string
 }
 
-var (
-	TEST_LeastAllocated = Test{
-		name:      "leastAllocated",
-		Names:     []string{"K4.0 Greedy", "K4.0 Dynamic", "K8s_leastAllocated"},
-		Callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__k8s},
-		Scoring:   []func(*WorkerNode, *Pod) float32{costAware_leastAllocated_score, costAware_leastAllocated_score, k8s_leastAllocated_score},
+// Classics
+var TEST_LeastAllocated = Test{
+	name:           "leastAllocated",
+	Names:          []string{"K4.0 Greedy", "K4.0 Dynamic byState", "K4.0 Dynamic ALL", "K8s_mostAllocated"},
+	Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__dynamic_allNodes, adding_new_pod__k8s},
+	Is_multiparam:  []bool{false, false, false, false},
 
-		MultiAware: nil,
-	}
-	TEST_MostAllocated = Test{
-		name:      "mostAllocated",
-		Names:     []string{"K4.0 Greedy", "K4.0 Dynamic", "K8s_mostAllocated"},
-		Callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__k8s},
-		Scoring:   []func(*WorkerNode, *Pod) float32{costAware_mostAllocated_score, costAware_mostAllocated_score, k8s_mostAllocated_score},
-
-		MultiAware: nil,
-	}
-	TEST_RequestedToCapacityRatio = Test{
-		name:      "requestedToCapacityRatio",
-		Names:     []string{"K4.0 Greedy", "K4.0 Dynamic", "K8s_requestedToCapacityRatio"},
-		Callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__k8s},
-		Scoring:   []func(*WorkerNode, *Pod) float32{costAware_requestedToCapacityRatio_score, costAware_requestedToCapacityRatio_score, k8s_requestedToCapacityRatio_score},
-
-		MultiAware: nil,
-	}
-)
-
-/*Multi Aware Params*/
-type MultiAwareParams struct {
-	k8s_func    func(*WorkerNode, *Pod) float32
-	la_k8s_func func(*WorkerNode, *Pod) float32
-	active      []bool
-	weights     []float32
+	Placing_scorer:  k8s_leastAllocated_score,
+	Placing_w:       1,
+	Multi_obj_funcs: nil,
+	Multi_obj_w:     nil,
+	Multi_obj_names: nil,
 }
 
-var (
-	TEST_LeastAllocated_4Params = Test{
-		name:      "leastAllocated_MAP",
-		Names:     []string{"K4.0 Greedy", "K4.0 Dynamic", "K8s_leastAllocated"},
-		Callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__k8s},
-		Scoring:   []func(*WorkerNode, *Pod) float32{parametric_scores_aware_score, parametric_scores_aware_score, k8s_leastAllocated_score},
+var TEST_MostAllocated = Test{
+	name:           "mostAllocated",
+	Names:          []string{"K4.0 Greedy", "K4.0 Dynamic byState", "K4.0 Dynamic ALL", "K8s_mostAllocated"},
+	Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__dynamic_allNodes, adding_new_pod__k8s},
+	Is_multiparam:  []bool{false, false, false, false},
 
-		MultiAware: &MultiAwareParams{
-			k8s_func:    k8s_leastAllocated_score,
-			la_k8s_func: la_leastAllocated_score,
-			active:      []bool{true, true, true, true},
-			weights:     []float32{2, 1, 1, 1},
-		},
-	}
-	TEST_MostAllocated_4Params = Test{
-		name:      "mostAllocated_MAP",
-		Names:     []string{"K4.0 Greedy", "K4.0 Dynamic", "K8s_mostAllocated"},
-		Callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__k8s},
-		Scoring:   []func(*WorkerNode, *Pod) float32{parametric_scores_aware_score, parametric_scores_aware_score, k8s_mostAllocated_score},
+	Placing_scorer:  k8s_mostAllocated_score,
+	Placing_w:       1,
+	Multi_obj_funcs: nil,
+	Multi_obj_w:     nil,
+	Multi_obj_names: nil,
+}
 
-		MultiAware: &MultiAwareParams{
-			k8s_func:    k8s_mostAllocated_score,
-			la_k8s_func: la_mostAllocated_score,
-			active:      []bool{true, true, true, true},
-			weights:     []float32{2, 1, 1, 1},
-		},
-	}
-	TEST_RequestedToCapacityRatio_3Params = Test{
-		name:      "requestedToCapacityRatio_MAP",
-		Names:     []string{"K4.0 Greedy", "K4.0 Dynamic", "K8s_requestedToCapacityRatio"},
-		Callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__k8s},
-		Scoring:   []func(*WorkerNode, *Pod) float32{parametric_scores_aware_score, parametric_scores_aware_score, k8s_requestedToCapacityRatio_score},
+var TEST_RequestedToCapacityRatio = Test{
+	name:           "requestedToCapacityRatio",
+	Names:          []string{"K4.0 Greedy", "K4.0 Dynamic byState", "K4.0 Dynamic ALL", "K8s_mostAllocated"},
+	Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__dynamic_allNodes, adding_new_pod__k8s},
+	Is_multiparam:  []bool{false, false, false, false},
 
-		MultiAware: &MultiAwareParams{
-			k8s_func:    k8s_requestedToCapacityRatio_score,
-			la_k8s_func: nil,
-			active:      []bool{true, true, true, false},
-			weights:     []float32{2, 1, 1, 1},
-		},
-	}
-)
+	Placing_scorer:  k8s_requestedToCapacityRatio_score,
+	Placing_w:       1,
+	Multi_obj_funcs: nil,
+	Multi_obj_w:     nil,
+	Multi_obj_names: nil,
+}
 
-var (
-	TEST_LA_LeastAllocated = Test{
-		name:      "leastAllocated_LA",
-		Names:     []string{"K4.0 Greedy", "K4.0 Dynamic", "K8s_leastAllocated"},
-		Callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__k8s},
-		Scoring:   []func(*WorkerNode, *Pod) float32{parametric_scores_aware_score, parametric_scores_aware_score, k8s_leastAllocated_score},
+// 4 params
 
-		MultiAware: &MultiAwareParams{
-			k8s_func:    k8s_leastAllocated_score, //Unused
-			la_k8s_func: la_leastAllocated_score,
-			active:      []bool{false, true, false, true},
-			weights:     []float32{0, 1, 0, 2},
-		},
-	}
-	TEST_LA_MostAllocated = Test{
-		name:      "mostAllocated_LA",
-		Names:     []string{"K4.0 Greedy", "K4.0 Dynamic", "K8s_mostAllocated"},
-		Callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__k8s},
-		Scoring:   []func(*WorkerNode, *Pod) float32{parametric_scores_aware_score, parametric_scores_aware_score, k8s_mostAllocated_score},
+// 5 params
+var TEST_LeastAllocated_5Params = Test{
+	name:           "leastAllocated_mobj",
+	Names:          []string{"K4.0 Greedy", "K4.0 Dynamic byState", "K4.0 Dynamic ALL", "K8s_mostAllocated"},
+	Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__dynamic_allNodes, adding_new_pod__k8s},
+	Is_multiparam:  []bool{true, true, true, false},
 
-		MultiAware: &MultiAwareParams{
-			k8s_func:    k8s_mostAllocated_score, //Unused
-			la_k8s_func: la_mostAllocated_score,
-			active:      []bool{false, true, false, true},
-			weights:     []float32{0, 1, 0, 2},
-		},
-	}
-)
+	Placing_scorer:  k8s_leastAllocated_score,
+	Placing_w:       4,
+	Multi_obj_funcs: []func(*WorkerNode, *Pod) float32{_energyCost_ratio, _computationPower_ratio, _log10_assurance_wasteless, _rt_waste},
+	Multi_obj_w:     []float32{2, 2, 1, 1},
+	Multi_obj_names: []string{"energy cost", "comput power", "log assurance", "rt waste"},
+}
+
+var TEST_MostAllocated_5Params = Test{
+	name:           "mostAllocated_mobj",
+	Names:          []string{"K4.0 Greedy", "K4.0 Dynamic byState", "K4.0 Dynamic ALL", "K8s_mostAllocated"},
+	Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__dynamic_allNodes, adding_new_pod__k8s},
+	Is_multiparam:  []bool{true, true, true, false},
+	
+	Placing_scorer:  k8s_mostAllocated_score,
+	Placing_w:       4,
+	Multi_obj_funcs: []func(*WorkerNode, *Pod) float32{_energyCost_ratio, _computationPower_ratio, _log10_assurance_wasteless, _rt_waste},
+	Multi_obj_w:     []float32{2, 2, 1, 1},
+	Multi_obj_names: []string{"energy cost", "comput power", "log assurance", "rt waste"},
+}
+
+var TEST_RequestedToCapacityRatio_5Params = Test{
+	name:           "requestedToCapacityRatio_mobj",
+	Names:          []string{"K4.0 Greedy", "K4.0 Dynamic byState", "K4.0 Dynamic ALL", "K8s_mostAllocated"},
+	Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__dynamic_allNodes, adding_new_pod__k8s},
+	Is_multiparam:  []bool{true, true, true, false},
+
+	Placing_scorer:  k8s_requestedToCapacityRatio_score,
+	Placing_w:       4,
+	Multi_obj_funcs: []func(*WorkerNode, *Pod) float32{_energyCost_ratio, _computationPower_ratio, _log10_assurance_wasteless, _rt_waste},
+	Multi_obj_w:     []float32{2, 2, 1, 1},
+	Multi_obj_names: []string{"energy cost", "comput power", "log assurance", "rt waste"},
+}

@@ -1,4 +1,4 @@
-package main
+package bak
 
 //go run basicResourceType.go cluster.go enum.go k8s_scoring.go main.go pod.go set.go test.go utils.go workernode.go
 
@@ -12,16 +12,10 @@ import (
 
 /* GLOBAL VARIABLES */
 // Number of Worker Nodes
-const n int = 20 //rand_ab_int(10, 25)
+const n int = 10 //rand_ab_int(10, 25)
 
 // Number of Pods
-const m int = 5000 // rand_ab_int(5000, 10000)
-
-const _MAX_REPLICAS int = 5
-const _DP_Max_Neigh int = -1
-
-const _DP_Xkeep = 1
-const _DP_neighSpan = 2
+const m int = 1000 // rand_ab_int(500, 1000)
 
 // Which algos am I comparing?
 var _test Test = TEST_LeastAllocated
@@ -47,7 +41,9 @@ var testClusters []*Cluster
 
 var _MAX_ENERGY_COST = -1
 
-const _Log LogLevel = Log_None
+const DP_Xkeep = 1
+
+const _Log LogLevel = Log_All
 const _log_on_stdout bool = false
 
 var logFile *os.File
@@ -90,6 +86,8 @@ func init() {
 			testClusters[t].AddWorkerNode(wn.Copy())
 		}
 	}
+	log.Printf("n: %d\tm: %d\n", n, m)
+	log.Printf("num rt: %d\n", _NumRT)
 }
 
 func parse_args() {
@@ -98,95 +96,33 @@ func parse_args() {
 	case "0": //custom
 		_test = Test{
 			name:           "custom_test",
-			Names:          []string{"K4.0 Greedy", "K4.0 Dynamic", "K4.0 Dynamic ALL", "K8s_mostAllocated"},
-			Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__dynamic_allNodes, adding_new_pod__k8s},
-			Is_multiparam:  []bool{true, true, true, false},
+			Names:          []string{"K4.0 Greedy", "K4.0 Dynamic", "K8s_mostAllocated"},
+			Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__k8s},
+			Is_multiparam:  []bool{true, true, false},
 
 			Placing_scorer:  k8s_mostAllocated_score,
-			Placing_w:       5,
-			Multi_obj_funcs: []func(*WorkerNode, *Pod) float32{_energyCost_ratio, _computationPower_ratio, _log10_assurance_wasteless, _rt_waste},
-			Multi_obj_w:     []float32{2, 2, 1, 1},
-			Multi_obj_names: []string{"energy cost", "comput power", "log assurance", "rt waste"},
+			Placing_w:       4,
+			Multi_obj_funcs: []func(*WorkerNode, *Pod) float32{_energyCost_ratio, _computationPower_ratio, _log10_assurance},
+			Multi_obj_w:     []float32{2, 1, 1},
 		}
 		break
 	case "1":
 		_test = TEST_LeastAllocated
 		break
 	case "2":
-		_test = TEST_MostAllocated
+		_test = TEST_LeastAllocated_4Params
 		break
 	case "3":
-		_test = TEST_RequestedToCapacityRatio
+		_test = TEST_MostAllocated
 		break
 	case "4":
-		_test = TEST_LeastAllocated_5Params
-		_test.name += "_4-2-2-1-1"
+		_test = TEST_MostAllocated_4Params
 		break
 	case "5":
-		_test = TEST_MostAllocated_5Params
-		_test.name += "_4-2-2-1-1"
+		_test = TEST_RequestedToCapacityRatio
 		break
 	case "6":
-		_test = TEST_RequestedToCapacityRatio_5Params
-		_test.name += "_4-2-2-1-1"
-		break
-	case "7":
-		_test = TEST_LeastAllocated_5Params
-		_test.Placing_w=5
-		_test.Multi_obj_w= []float32{3.,2.,2.,1.}
-		_test.name += "_5-3-2-2-1"
-		// _test.name += fmt.Sprintf("_%d", int(_test.Placing_w))
-		// for _, w := range(_test.Multi_obj_w){
-		// 	_test.name += fmt.Sprintf("_%d", int(w))
-		// }
-		break
-	case "8":
-		_test = TEST_MostAllocated_5Params
-		_test.Placing_w=5
-		_test.Multi_obj_w= []float32{3.,2.,2.,1.}
-		_test.name += "_5-3-2-2-1"
-		break
-	case "9":
-		_test = TEST_RequestedToCapacityRatio_5Params
-		_test.Placing_w=5
-		_test.Multi_obj_w= []float32{3.,2.,2.,1.}
-		_test.name += "_5-3-2-2-1"
-		break
-	case "10":
-		_test = TEST_LeastAllocated_5Params
-		_test.Placing_w=4
-		_test.Multi_obj_w= []float32{2.,1.,1.,1.}
-		_test.name += "_4-2-1-1-1"
-		break
-	case "11":
-		_test = TEST_MostAllocated_5Params
-		_test.Placing_w=4
-		_test.Multi_obj_w= []float32{2.,1.,1.,1.}
-		_test.name += "_4-2-1-1-1"
-		break
-	case "12":
-		_test = TEST_RequestedToCapacityRatio_5Params
-		_test.Placing_w=4
-		_test.Multi_obj_w= []float32{2.,1.,1.,1.}
-		_test.name += "_4-2-1-1-1"
-		break
-	case "13":
-		_test = TEST_LeastAllocated_5Params
-		_test.Placing_w=3
-		_test.Multi_obj_w= []float32{2.,1.,1.,1.}
-		_test.name += "_3-2-1-1-1"
-		break
-	case "14":
-		_test = TEST_MostAllocated_5Params
-		_test.Placing_w=3
-		_test.Multi_obj_w= []float32{2.,1.,1.,1.}
-		_test.name += "_3-2-1-1-1"
-		break
-	case "15":
-		_test = TEST_RequestedToCapacityRatio_5Params
-		_test.Placing_w=3
-		_test.Multi_obj_w= []float32{2.,1.,1.,1.}
-		_test.name += "_3-2-1-1-1"
+		_test = TEST_RequestedToCapacityRatio_4Params
 		break
 	default:
 		os.Exit(2)
@@ -276,7 +212,7 @@ func main_sequential() {
 				R[t] = solution.n_replicas
 			}
 
-			if _Log >= Log_Scores && t == nTests-1 && !const_array(R) {
+			if t == nTests-1 && !const_array(R) {
 				// log.Printf("[Replicas D]\n\t[%s]: \t%d\n\t[%s]: \t%d\n\t[%s]: \t%d\n\n", _test.Names[0], R[0], _test.Names[1], R[1], _test.Names[2], R[2])
 				str := "[Replicas D]"
 				for _i, _ := range R {
@@ -297,7 +233,7 @@ func main_sequential() {
 			}
 		}
 
-		if _Log >= Log_Some {
+		if _Log >= Log_Scores {
 			log.Println()
 		}
 	}
@@ -305,12 +241,7 @@ func main_sequential() {
 	matrixToCsv(_FOLDER+"energy.csv", Energy_cost_Ratio[:], append([]string{"pod index"}, _test.Names[:]...), 3)
 	for t := range _test.Names {
 		log.Printf("[%s] - completed in %s\n", _test.Names[t], readableNanoseconds(chronometers[t]))
-		log.Println(testClusters[t])
 	}
-	log.Printf("n: %d\tm: %d\n", n, m)
-	log.Printf("num rt: %d\n", _NumRT)
-	log.Printf("Max Replicas: %d\n", _MAX_REPLICAS)
-	log.Printf("DP Max Neigh: %d\n", _DP_Max_Neigh)
 }
 
 func apply_solution(cluster *Cluster, pod *Pod, solution Solution, test_name string) {
@@ -320,7 +251,7 @@ func apply_solution(cluster *Cluster, pod *Pod, solution Solution, test_name str
 		}
 		cluster.PodRejected()
 	} else {
-		if _Log >= Log_Some {
+		if _Log >= Log_Scores {
 			log.Printf("[%s]\tSolution with %d replicas (%d)\n", test_name, solution.n_replicas, solution.list_Ids())
 		}
 
@@ -369,10 +300,6 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 	var theta = float64(pod.Criticality)
 
 	for prob_atleast_half < theta {
-		if _MAX_REPLICAS > 0 && solution.n_replicas == _MAX_REPLICAS {
-			solution.Reject()
-			break
-		}
 		/* Search greedily the best node */
 		id, score = find_best_wn(cluster.byState(state_im_scanning), pod, "Greedy",
 			true, exclude_ids, computed_scores,
@@ -401,9 +328,7 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 
 			probabilities = append(probabilities, best_node.Assurance.value())
 			prob_atleast_half = compute_probability_atLeastHalf(probabilities)
-			if _Log >= Log_Scores {
-				log.Printf("[K4.0 Greedy]: With wn %d -> Prob h+: %.12f (theta = %.12f) \n", id, prob_atleast_half, theta)
-			}
+			log.Printf("[K4.0 Greedy]: Prob h+: %.12f (theta = %.12f) \n", prob_atleast_half, theta)
 		}
 	}
 
@@ -446,7 +371,7 @@ func find_best_wn(nodes map[int]*WorkerNode, pod *Pod,
 						argbest = id
 					}
 				}
-				if _Log >= Log_Scores {
+				if _Log >= Log_Some {
 					log.Printf("\tScoring wn %d: score %.2f\n", id, score)
 				}
 			} else {
@@ -472,15 +397,13 @@ func adding_new_pod__dynamic(cluster *Cluster, pod *Pod,
 ) Solution {
 
 	var solution Solution = NewSolution(pod)
-	var edge_solutions map[int][]int
+	var el_solutions map[int][]DP_Entry
 
 	// It is my responsability to create the vectors for assurances, scores and references
 	var scores []float32
 	var assurances []float64 // Probabilities
 	var references []*WorkerNode
 	var clusterstates []ClusterNodeState
-	var n int
-	var theta = pod.Criticality.value()
 
 	if len(cluster.Active) > 0 {
 		if true { //Writing the arrays of scores and assurance. If true just to fold it
@@ -508,22 +431,27 @@ func adding_new_pod__dynamic(cluster *Cluster, pod *Pod,
 				log.Printf("Errore, scores (%d) e assurances (%d) hanno dimensione diversa (in dynamic)\n", len(scores), len(assurances))
 				os.Exit(1)
 			}
-
-			n = len(scores)
 		}
 
-		// Sort by Assurance asc
-		sortByPrimary_f64(assurances, scores, references, clusterstates, func(a, b float64) bool {
+		/*Run DP : byScores 	 min to max*/
+		sortByPrimary_f32(scores, assurances, references, clusterstates, func(a, b float32) bool {
 			return a < b
-		}, true)
-		_, edge_solutions = DP_findEligibleSolution(n, assurances, theta, _DP_Xkeep)
+		}, false)
+		_, el_solutions = _create_dynamic_programming_matrix(assurances, pod, DP_Xkeep)
+		/*If no solution byScores, try byAssurance		 max to min*/
+		if len(el_solutions) == 0 {
+			sortByPrimary_f64(assurances, scores, references, clusterstates, func(a, b float64) bool {
+				return a < b
+			}, true)
+			_, el_solutions = _create_dynamic_programming_matrix(assurances, pod, DP_Xkeep)
+		}
 	}
 
 	// If no solution (that has theta or more) using only Active nodes, Try again on all
-	if len(edge_solutions) == 0 {
+	if len(el_solutions) == 0 {
 		if true { //Writing the arrays of scores and assurance. If true just to fold it
 			var overprice_func = func(node *WorkerNode) int {
-				return int((node.EnergyCost * 15) / 10) // = *1.5
+				return int((node.EnergyCost * 15) / 10) //power_floor(1.15, len(node.pods))
 			}
 
 			for _, node := range cluster.Idle {
@@ -553,340 +481,137 @@ func adding_new_pod__dynamic(cluster *Cluster, pod *Pod,
 				log.Printf("Errore, scores (%d) e assurances (%d) hanno dimensione diversa (in dynamic)\n", len(scores), len(assurances))
 				os.Exit(1)
 			}
-
-			n = len(scores)
 		}
 
-		// Sort by Assurance asc
-		sortByPrimary_f64(assurances, scores, references, clusterstates, func(a, b float64) bool {
+		/*Run DP : byScores		 min to max*/
+		sortByPrimary_f32(scores, assurances, references, clusterstates, func(a, b float32) bool {
 			return a < b
-		}, true)
-		_, edge_solutions = DP_findEligibleSolution(n, assurances, theta, _DP_Xkeep)
+		}, false)
+		_, el_solutions = _create_dynamic_programming_matrix(assurances, pod, DP_Xkeep)
+		/*If no solution byScores, try byAssurance		 max to min*/
+		if len(el_solutions) == 0 {
+			sortByPrimary_f64(assurances, scores, references, clusterstates, func(a, b float64) bool {
+				return a < b
+			}, true)
+			_, el_solutions = _create_dynamic_programming_matrix(assurances, pod, DP_Xkeep)
+		}
 
 		/*If still no solution, reject*/
-		if len(edge_solutions) == 0 {
+		if len(el_solutions) == 0 {
 			solution.Reject()
 			return solution
 		}
 	}
 
 	//One or more solution found
-	all_eligibles := _DP_search_neigh_solutions(n, assurances, theta, edge_solutions, _DP_neighSpan)
-	selectedSolution, _ := _DP_pick_best_solution(all_eligibles, scores)
+	var selectedSolution DP_Entry = choose_DP_entry(el_solutions, scores)
 	_update_solution(&solution, selectedSolution, references, clusterstates)
 	return solution
 }
 
-func adding_new_pod__dynamic_allNodes(cluster *Cluster, pod *Pod,
-	placer_scoring_func func(*WorkerNode, *Pod) float32,
-) Solution {
-
-	var solution Solution = NewSolution(pod)
-	var edge_solutions map[int][]int
-
-	// It is my responsability to create the vectors for assurances, scores and references
-	var scores []float32
-	var assurances []float64 // Probabilities
-	var references []*WorkerNode
-	var clusterstates []ClusterNodeState
-	var n int
-	var theta = pod.Criticality.value()
-
-	if len(cluster.Active) > 0 {
-		if true { //Writing the arrays of scores and assurance. If true just to fold it
-			for _, node := range cluster.Active {
-				if node.EligibleFor(pod) {
-					// Filtering for eligibles
-					scores = append(scores, placer_scoring_func(node, pod))
-					assurances = append(assurances, node.Assurance.value())
-					references = append(references, node)
-					clusterstates = append(clusterstates, Active)
-
-					if _Log >= Log_All {
-						log.Printf("[Dynamic]\tNode %d, Pod %d. Score: %.2f\n", node.ID, pod.ID, scores[len(scores)-1])
-					}
-				} else {
-					explain, reason := node.ExplainEligibility(pod)
-					if explain && _Log >= Log_All {
-						log.Printf("[Dynamic]\tNode %d, Pod %d. Reason %s\n", node.ID, pod.ID, reason)
-					}
-				}
-			}
-		}
-	}
-
-	if true { //Writing the arrays of scores and assurance. If true just to fold it
-		var overprice_func = func(node *WorkerNode) int {
-			return int((node.EnergyCost * 3) / 2) // = *1.5
-		}
-
-		for _, node := range cluster.Idle {
-			if node.EligibleFor(pod) {
-				// Filtering for eligibles
-				true_cost := node.EnergyCost
-				node.EnergyCost = overprice_func(node)
-				scores = append(scores, placer_scoring_func(node, pod))
-				node.EnergyCost = true_cost
-
-				assurances = append(assurances, node.Assurance.value())
-				references = append(references, node)
-				clusterstates = append(clusterstates, Idle)
-
-				if _Log >= Log_All {
-					log.Printf("[Dynamic]\tNode %d, Pod %d. Score: %.2f\n", node.ID, pod.ID, scores[len(scores)-1])
-				}
-			} else {
-				explain, reason := node.ExplainEligibility(pod)
-				if explain && _Log >= Log_All {
-					log.Printf("[Dynamic]\tNode %d, Pod %d. Reason %s\n", node.ID, pod.ID, reason)
-				}
-			}
-		}
-	}
-
-	// Check for errors
-	if len(scores) != len(assurances) {
-		log.Printf("Errore, scores (%d) e assurances (%d) hanno dimensione diversa (in dynamic)\n", len(scores), len(assurances))
-		os.Exit(1)
-	}
-
-	n = len(scores)
-	// Sort by Assurance asc
-	sortByPrimary_f64(assurances, scores, references, clusterstates, func(a, b float64) bool {
-		return a < b
-	}, true)
-	_, edge_solutions = DP_findEligibleSolution(n, assurances, theta, _DP_Xkeep)
-
-	/*If still no solution, reject*/
-	if len(edge_solutions) == 0 {
-		solution.Reject()
-		return solution
-	}
-
-	//One or more solution found
-	all_eligibles := _DP_search_neigh_solutions(n, assurances, theta, edge_solutions, _DP_neighSpan)
-	selectedSolution, _ := _DP_pick_best_solution(all_eligibles, scores)
-	_update_solution(&solution, selectedSolution, references, clusterstates)
-	return solution
+type DP_Entry struct {
+	start             int
+	end               int
+	prob_atLeast_half float64
+	score             float32
 }
 
-// findEligibleSolution implements the 3D DP approach in Go
-func DP_findEligibleSolution(n int, probabilities []float64, theta float64, overkillSize int) ([][][]float64, map[int][]int) {
-	// Initialize a 3D DP table
-	var maxJ int = _MAX_REPLICAS
-	if _MAX_REPLICAS < 0 || _MAX_REPLICAS>=n {
-		maxJ = n
-	}
+func _create_dynamic_programming_matrix(p []float64, pod *Pod,
+	x_keep int,
+) ([][][]float64, map[int][]DP_Entry) {
+	// Init DP variables
+	var first_el_amount int = -1
+	eligibles := make(map[int][]DP_Entry)
 
-	dp := make([][][]float64, n+1)
-	for i := range dp {
-		dp[i] = make([][]float64, maxJ+1) //n+1)
-		for j := range dp[i] {
-			dp[i][j] = make([]float64, maxJ+1) //n+1)
+	var theta float64 = pod.Criticality.value()
+	n := len(p)
+
+	// Create a 3D DP table initialized to 0.0
+	dp := make([][][]float64, n)
+	for i := 0; i < n; i++ {
+		dp[i] = make([][]float64, n)
+		for j := 0; j < n; j++ {
+			dp[i][j] = make([]float64, n+1)
 		}
 	}
-	dp[0][0][0] = 1.0 // Base case
 
-	firstEligible := make(map[int][]int)
-	firstEligibleSize := -1
+	// For each start node (i), up to each node (j), compute the probability that exactly k (for each k) satisfy their prob
+	for i := 0; i < n; i++ { // Starting node
+		for j := i; j < n; j++ { // Ending node
+			this_amount := (j - i) + 1
 
-	// Fill DP Table
-	for i := 1; i <= n; i++ { // Nodes
-		for j := 0; j <= i; j++ { // Selected Nodes
-			if j > maxJ || (firstEligibleSize > 0 && j > firstEligibleSize+overkillSize) {
+			// Skip condition
+			if first_el_amount != -1 && this_amount > first_el_amount+x_keep {
 				continue
 			}
 
-			for k := 0; k <= j; k++ { // Successes
-				if j > 0 {
-					dp[i][j][k] += dp[i-1][j-1][k] * (1 - probabilities[i-1]) // Fails
+			for k := 0; k <= this_amount; k++ { // Exact number of True variables
+				if j == i { // Base case: single node in the range
+					if k == 0 {
+						dp[i][j][k] = 1 - p[j]
+					} else if k == 1 {
+						dp[i][j][k] = p[j]
+					}
+				} else { // General case: extend the range [i, j-1] to [i, j]
+					dp[i][j][k] = dp[i][j-1][k] * (1 - p[j]) // j-th node is False
 					if k > 0 {
-						dp[i][j][k] += dp[i-1][j-1][k-1] * probabilities[i-1] // Succeeds
+						dp[i][j][k] += dp[i][j-1][k-1] * p[j] // j-th node is True
 					}
-				} else {
-					dp[i][j][k] = 1.0
 				}
 			}
 
-			// Evaluate Solution
-			if j > 0 {
-				if firstEligibleSize < 1 || j < firstEligibleSize {
-					probIfInSolution := 0.0
-					for k := (j/2 + 1); k <= j; k++ {
-						probIfInSolution += dp[i][j][k]
-					}
+			// Calculate probabilities for at least half the range
+			// In go this should be put inside the previous loop to optimize, but like this is more clear
+			prob_atleast_half := 0.0
+			for k := (this_amount / 2) + 1; k <= this_amount; k++ {
+				prob_atleast_half += dp[i][j][k]
+			}
 
-					if probIfInSolution >= theta {
-						// Backtrack
-						sol := []int{i - 1}
-						_i, _j := i-1, j-1
-						for _j > 0 {
-							if dp[_i][_j][_j] != dp[_i-1][_j][_j] {
-								sol = append(sol, _i-1)
-								_j--
-							}
-							_i--
-						}
-
-						firstEligible[j] = sol
-						firstEligibleSize = j
-					}
+			if prob_atleast_half >= theta {
+				if x_keep > 0 && first_el_amount == -1 {
+					first_el_amount = this_amount
 				}
+
+				if _, exists := eligibles[this_amount]; !exists {
+					eligibles[this_amount] = make([]DP_Entry, 0)
+				}
+				eligibles[this_amount] = append(eligibles[this_amount], DP_Entry{i, j, prob_atleast_half, -1})
 			}
 		}
 	}
 
-	// Remove extra solutions
-	for size := firstEligibleSize + overkillSize + 1; size < maxJ; size++ { // size < n
-		delete(firstEligible, size)
-	}
-	// log.Println("[Dynamic Debug] el solution: ", firstEligible)
-	return dp, firstEligible
+	return dp, eligibles
 }
 
-// Concats permutateMinSolution and AllGreaterTuples
-func _DP_search_neigh_solutions(n int, probabilities []float64, theta float64, firstEligibles map[int][]int, neighSearch int) [][]int {
-	// Step 2: Generate all eligible solutions and their neighbors
-	var allEligibles [][]int
-
-	for _, elSol := range firstEligibles {
-		// fmt.Printf("Solution of size %d: %v\n", size, elSol)
-
-		// Get neighboring solutions
-		eligiblesNeigh := _DP_permutateMinSolution(n, probabilities, theta, elSol, neighSearch)
-
-		// fmt.Printf("%d neighbor solutions of size %d:\n", len(eligiblesNeigh), size)
-
-		// Expand solutions
-		allEligibles = append(allEligibles, _DP_allGreaterTuples(eligiblesNeigh, n)...)
-	}
-
-	return allEligibles
-}
-
-func _DP_permutateMinSolution(n int, probabilities []float64, theta float64, firstEligible []int, neighSearch int) [][]int {
-	eligiblesNeigh := [][]int{firstEligible}
-	size := len(firstEligible)
-
-	i := 0
-	for (i < _DP_Max_Neigh || _DP_Max_Neigh<0) && i < len(eligiblesNeigh) {
-		_sol := eligiblesNeigh[i]
-		if len(_sol) > 0 {
-			for idx := 0; idx < size; idx++ { // Increment idx
-				for jdx := 0; jdx < size; jdx++ { // Decrement jdx
-					if idx == jdx {
-						continue
-					}
-
-					for shift := 1; shift <= neighSearch; shift++ { // Shift values
-						neigh := append([]int(nil), _sol...) // Copy slice
-						neigh[idx] += shift
-						neigh[jdx] -= shift
-
-						// Constraints to avoid duplicates or invalid sequences
-						if neigh[idx] >= n || neigh[jdx] < 0 ||
-							(idx > 0 && neigh[idx] >= _sol[idx-1]) ||
-							(jdx < size-1 && neigh[jdx] <= _sol[jdx+1]) ||
-							(idx > 0 && neigh[idx] >= neigh[idx-1]) ||
-							(jdx < size-1 && neigh[jdx] <= neigh[jdx+1]) {
-							// continue
-							break //maybe optimization as early exit
-						}
-
-						// Check if eligible
-						if _DP_is_tuple_eligible(probabilities, theta, neigh) {
-							if !containsSlice(eligiblesNeigh, neigh) {
-								eligiblesNeigh = append(eligiblesNeigh, neigh)
-							}
-						}
-					}
-				}
+func choose_DP_entry(eligibles map[int][]DP_Entry, scores []float32) DP_Entry {
+	var score float32 = 0.
+	var best_score float32 = -1.
+	var best_entry DP_Entry
+	for _, entries := range eligibles {
+		for _, entry := range entries {
+			score = 0
+			for i := entry.start; i <= entry.end; i++ {
+				score += scores[i]
 			}
-		}
-		i++
-	}
+			entry.score = score
 
-	return eligiblesNeigh
-}
-
-func _DP_allGreaterTuples(inputEligibles [][]int, n int) [][]int {
-	eligibles := make(map[string][]int) // Use map to store unique slices as keys
-	var results [][]int
-
-	for _, el := range inputEligibles {
-		// log.Println("[Dynamic Debug] all greater tuples of: ", el)
-		eligibles[sliceToString(el)] = el
-
-		size := len(el)
-		if true {
-			newT := append([]int(nil), el...) // Copy slice
-
-			for newT[0] < n {
-				newT[size-1]++ // Increment last element
-
-				// Adjust elements to maintain order
-				if size > 1 && (newT[size-1] >= newT[size-2]) {
-					idx := size - 1
-					for idx > 0 && newT[idx] >= newT[idx-1] {
-						newT[idx] = el[idx]
-						newT[idx-1]++
-						idx--
-					}
-				}
-
-				// Ensure uniqueness
-				if newT[0] < n {
-					key := sliceToString(newT)
-					if _, exists := eligibles[key]; !exists {
-						eligibles[key] = append([]int(nil), newT...)
-
-						// log.Println("\t\tfound: ", newT)
-					}
-				}
+			if best_score < 0 || score < best_score {
+				best_score = score
+				best_entry = entry
+				// log.Println("New best entry", entry)
+				// log.Printf("\t%d - %d : %.7f\t Score: %.4f\n\n", entry.start, entry.end, entry.prob_atLeast_half, score)
 			}
 		}
 	}
-
-	// Convert map values to slice
-	for _, val := range eligibles {
-		results = append(results, val)
-	}
-
-	return results
+	return best_entry
 }
 
-func _DP_is_tuple_eligible(probabilities []float64, theta float64, tuple_sol []int) bool {
-	p_tuple := []float64{}
-	for _, p_idx := range tuple_sol {
-		p_tuple = append(p_tuple, probabilities[p_idx])
-	}
-	return compute_probability_atLeastHalf(p_tuple) >= theta
-}
-
-func _DP_pick_best_solution(all_eligibles [][]int, scores []float32) ([]int, float32) {
-	var best_sol []int
-	var min_score float32 = -1.
-	for _, tuple := range all_eligibles {
-		var score float32 = 0.
-		for _, node_idx := range tuple {
-			score += scores[node_idx]
-		}
-
-		if min_score < 0 || score < min_score {
-			min_score = score
-			best_sol = tuple
-		}
-		// log.Println("[Dynamic Debug] eligible: ", tuple, " with score: ", score)
-	}
-	return best_sol, min_score
-}
-
-func _update_solution(solution *Solution, selectedSolution []int, references []*WorkerNode, states []ClusterNodeState) int {
-	for _, node_idx := range selectedSolution {
+func _update_solution(solution *Solution, dp_entry DP_Entry, references []*WorkerNode, states []ClusterNodeState) int {
+	for idx := dp_entry.start; idx <= dp_entry.end; idx++ {
 		if _Log >= Log_Scores {
-			log.Printf("[Dynamic] best entry: node %d\n", references[node_idx].ID)
+			log.Printf("[Dynamic] best entry: node %d\n", references[idx].ID)
 		}
-		solution.AddToSolution(states[node_idx], references[node_idx])
+		solution.AddToSolution(states[idx], references[idx])
 	}
 	return solution.n_replicas
 }
@@ -913,10 +638,6 @@ func adding_new_pod__k8s(cluster *Cluster, pod *Pod,
 	var allNodes_map = cluster.All_map()
 
 	for prob_atleast_half < theta {
-		if _MAX_REPLICAS > 0 && solution.n_replicas == _MAX_REPLICAS {
-			solution.Reject()
-			break
-		}
 		/* Search greedily the best node */
 		id, score = find_best_wn(allNodes_map, pod, "K8s",
 			true, exclude_ids, computed_scores,
@@ -938,9 +659,7 @@ func adding_new_pod__k8s(cluster *Cluster, pod *Pod,
 
 		probabilities = append(probabilities, node.Assurance.value())
 		prob_atleast_half = compute_probability_atLeastHalf(probabilities)
-		if _Log >= Log_Scores {
-			log.Printf("[K8s]: with wn %d -> Prob h+: %.12f (theta = %.12f) \n", id, prob_atleast_half, theta)
-		}
+		log.Printf("[K8s]: Prob h+: %.12f (theta = %.12f) \n", prob_atleast_half, theta)
 	}
 
 	// log.Printf("%s\n", solution)

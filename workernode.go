@@ -7,6 +7,7 @@ import (
 )
 
 const _REALISTIC_OVERPRICE bool = true
+
 var _NumRT int = 0
 var _noRT_since float32 = 0. // I use this to 'ensure' enough rt nodes
 
@@ -49,7 +50,7 @@ type WorkerNode struct {
 	RAM_Capacity      int
 	RealTime          bool
 	EnergyCost        int
-	Assurance         Assurance
+	Assurance         _Assurance // Assurance is now "the probability of not failing and is to be in [10^-7; 10^-2]"
 	Computation_Power int
 
 	pods   map[int]*Pod
@@ -62,7 +63,7 @@ func createRandomWorkerNode(id int) WorkerNode {
 	const cost_unit, cost_min, cost_max int = 50, 5, 50
 	const cp_min, cp_max int = 1, 5
 
-	var p_rt float32 = (_noRT_since+1)/(_noRT_since+2) 
+	var p_rt float32 = (_noRT_since + 1) / (_noRT_since + 2)
 	var rt = rand_01() <= p_rt
 	var cpu_capacity int = rand_ab_int(br_min, br_max) * br_unit
 	var disk_capacity int = rand_ab_int(br_min, br_max) * br_unit
@@ -70,20 +71,14 @@ func createRandomWorkerNode(id int) WorkerNode {
 	var cp int = rand_ab_int(cp_min, cp_max)
 	var cost_f float32 = float32(rand_ab_int(cost_min, cost_max) * cost_unit)
 
-	var assurance Assurance
-	var r = rand_01()
-	if r >= 0.5 || (rt && r >= 1./3.) {
-		assurance = HighAssurance
-	} else {
-		assurance = LowAssurance
-	}
+	var assurance _Assurance = rand__Assurance(rt)
 
 	/*Realistic overprice*/
 	if _REALISTIC_OVERPRICE {
 		if rt {
 			cost_f *= rand_ab_float(1.25, 2.5)
 		}
-		if assurance == HighAssurance {
+		if assurance >= 0.9995 {
 			cost_f *= rand_ab_float(1., 2.)
 		}
 
@@ -109,11 +104,13 @@ func createRandomWorkerNode(id int) WorkerNode {
 		_MAX_ENERGY_COST = cost_i
 	}
 
-	if rt{
+	if rt {
 		_NumRT++
 		_noRT_since--
-		if _noRT_since<0.{ _noRT_since=0. }
-	}else{
+		if _noRT_since < 0. {
+			_noRT_since = 0.
+		}
+	} else {
 		_noRT_since++
 	}
 
@@ -200,8 +197,7 @@ func (node *WorkerNode) AllocatedPercentage() (float32, float32, float32) {
 
 // Eligibility
 func (wn WorkerNode) baseRequirementsMatch(p *Pod) bool {
-	return (wn.RealTime || !p.RealTime) &&
-		wn.status.unrequestedCPU >= p.CPU.request &&
+	return wn.status.unrequestedCPU >= p.CPU.request &&
 		wn.status.unrequestedDisk >= p.Disk.request &&
 		wn.status.unrequestedRAM >= p.RAM.request
 }
@@ -212,6 +208,20 @@ func (wn *WorkerNode) EligibleFor(pod *Pod) bool {
 	return (wn.RealTime || !pod.RealTime) &&
 		wn.advancedRequirementsMatch(pod) &&
 		wn.baseRequirementsMatch(pod)
+}
+
+func (wn *WorkerNode) ExplainEligibility(pod *Pod) (bool, string) {
+	if wn.EligibleFor(pod) {
+		return false, "Is eligible"
+	} else {
+		if !(wn.RealTime || !pod.RealTime) {
+			return false, "Run time eligibility violated"
+		} else {
+			return true, fmt.Sprintf("Resource insufficient:\n\tPod req: %d, %d, %d\n\tWN status: %d, %d, %d\n",
+				pod.CPU.request, pod.Disk.request, pod.RAM.request,
+				wn.status.unrequestedCPU, wn.status.unrequestedDisk, wn.status.unrequestedRAM)
+		}
+	}
 }
 
 // Actions
@@ -239,23 +249,30 @@ func (wn *WorkerNode) RemovePod(pod *Pod) {
 }
 
 // Pud running
-func (wn *WorkerNode) RunPods() bool {
-	r := rand_01()
-	var inter Interference = No_Interference
-	if wn.Assurance == LowAssurance {
-		if r < _HEAVY_INTERFERENCE_CHANCE {
-			inter = Heavy_Interference
-		} else if r < _LIGHT_INTERFERENCE_CHANCE+_HEAVY_INTERFERENCE_CHANCE {
-			inter = Light_Interference
+func (wn *WorkerNode) RunPods(algoTag string) bool {
+	r := float64(rand_01())
+	var interference bool = r > wn.Assurance.value() // there is interference if randomValue is greater than assurance (assurance is chance of not having interference)
+	var heavyInteference bool = interference && rand_ab_int(0, 1+int(-log10_f32(1.-wn.Assurance.value())))==0		// heavy interference means no execution
+	if interference && (len(wn.pods) > 0) && _Log >= Log_Scores {
+		podlist := "\tPods affected: "
+		for _, p := range wn.pods {
+			podlist += fmt.Sprint(p.ID) + ", "
+		}
+		podlist = podlist[:len(podlist)-2]
+		if heavyInteference{
+			log.Printf("[%s] Worker Node %d heavy interference.%s\n", algoTag, wn.ID, podlist)
+		}else{
+			log.Printf("[%s] Worker Node %d interference.%s\n", algoTag, wn.ID, podlist)
 		}
 	}
+
 	if len(wn.pods) > 0 {
 		completed := make([]*Pod, 0)
 		for _, pod := range wn.pods {
-			complete := pod.Run(wn, inter)
+			complete := pod.Run(wn, interference, heavyInteference)
 			if complete {
 				if _Log >= Log_Some {
-					log.Printf("Pod %d completed on worker node %d\n", pod.ID, wn.ID)
+					log.Printf("[%s] Pod %d completed on worker node %d\n", algoTag, pod.ID, wn.ID)
 				}
 				completed = append(completed, pod)
 			}

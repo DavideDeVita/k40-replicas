@@ -1,0 +1,15 @@
+DP:
+    - Energy cost overprice on activation
+        Make as function
+        ec * x^(MaxNumPodDeployed - podDeployed) with x=1.15?
+
+        attualmente è       ec * 1.5
+
+    - Sort by score
+        then sort by assurance
+            then on all by score
+                then on all by assurance
+    (Probabilmente devo fare in "parallelo" sort by assurance e score, prendere i migliori e valutare il migliore dei migliori) NO
+
+Greedy (e K8s)
+    Potrei mettere i nodi in lista ordinata epr score e estrarre invece di richiamare find best
