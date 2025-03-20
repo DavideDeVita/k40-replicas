@@ -263,7 +263,7 @@ func (s Solution) String() string {
 	return result
 }
 
-func (s Solution) list_Ids() []int{
+func (s Solution) list_Ids() []int {
 	ret := []int{}
 	for id, _ := range s.Active {
 		ret = append(ret, id)

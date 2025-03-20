@@ -102,7 +102,7 @@ type LogLevel int
 
 const (
 	Log_None   LogLevel = 0
-	Log_Scores LogLevel = 1
-	Log_Some   LogLevel = 2
+	Log_Some   LogLevel = 1
+	Log_Scores LogLevel = 2
 	Log_All    LogLevel = 3
 )

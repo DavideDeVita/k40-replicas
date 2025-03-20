@@ -252,7 +252,7 @@ func (wn *WorkerNode) RemovePod(pod *Pod) {
 func (wn *WorkerNode) RunPods(algoTag string) bool {
 	r := float64(rand_01())
 	var interference bool = r > wn.Assurance.value() // there is interference if randomValue is greater than assurance (assurance is chance of not having interference)
-	var heavyInteference bool = interference && rand_ab_int(0, int(-log10_f32(1.-wn.Assurance.value())))==0		// heavy interference means no execution
+	var heavyInteference bool = interference && rand_ab_int(0, 1+int(-log10_f32(1.-wn.Assurance.value())))==0		// heavy interference means no execution
 	if interference && (len(wn.pods) > 0) && _Log >= Log_Scores {
 		podlist := "\tPods affected: "
 		for _, p := range wn.pods {

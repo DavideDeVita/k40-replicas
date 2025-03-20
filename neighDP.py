@@ -82,7 +82,8 @@ def permutate_min_solution (probabilities, firstEligible, theta, neigh_search=1)
                                 (idx>0 and neigh[idx]>=neigh[idx-1]) or \
                                     (jdx<size-1 and neigh[jdx]<=neigh[jdx+1]):
                         # print(f"Skipping: {idx=}, {jdx=},\n\t {neigh[idx]=}, {neigh[jdx]=},\n\t{neigh=}, {_sol_L=}, {shift=}")
-                        continue
+                        # continue
+                        break
                     neigh = tuple(neigh)
                     # print("neigh=", neigh)
                     if neigh not in eligibles_neigh:    # all_unique(neigh) and 

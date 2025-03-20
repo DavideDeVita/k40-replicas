@@ -47,7 +47,8 @@ func _energyCost_ratio(node *WorkerNode, pod *Pod) float32 {
 }
 
 func _computationPower_ratio(node *WorkerNode, pod *Pod) float32 {
-	return 1. / float32(node.Computation_Power)
+	// return 1. / float32(node.Computation_Power)
+	return 2. / float32(node.Computation_Power+1)
 }
 
 func _log10_assurance(node *WorkerNode, pod *Pod) float32 {
@@ -76,24 +77,24 @@ func _rt_waste(node *WorkerNode, pod *Pod) float32 {
 */
 var _funcs []func(node *WorkerNode, p *Pod) float32
 var _weights []float32
+var _names []string
 var _w_denom float32 = 0.
 
 func init_scoring_params(test Test) {
 	_funcs = append([]func(node *WorkerNode, p *Pod) float32{test.Placing_scorer}, test.Multi_obj_funcs...)
 	_weights = append([]float32{test.Placing_w}, test.Multi_obj_w...)
+	_names = append([]string{"k8s placer"}, test.Multi_obj_names...)
 	_w_denom = 0
 	for _, w := range _weights {
 		_w_denom += w
 	}
 }
 
-var __tmp = []string{"k8s placer", "energy cost", "comput power", "log assurance", "rt waste"}
-
 func evaluate_score(node *WorkerNode, p *Pod) float32 {
 	var score float32 = 0.
 	for i, f := range _funcs {
 		if _Log >= Log_Scores {
-			log.Printf("Eval score (%s) \t%.2f * %.2f = %.2f\n", __tmp[i], f(node, p), _weights[i], f(node, p)*_weights[i])
+			log.Printf("Eval score (%s) \t%.2f * %.2f = %.2f\n", _names[i], f(node, p), _weights[i], f(node, p)*_weights[i])
 		}
 		score += f(node, p) * _weights[i]
 	}

@@ -119,7 +119,7 @@ def highest_chance_no_issues(n, probabilities, theta, overkill_size=1):
                     # print("Adding ", tuple(sol), "with p:", prob_if_in_solution)
 
             if prob_if_not > prob_if_in_solution:
-                # print(i, j, " better excl", prob_if_in_solution, "<", prob_if_not)
+                print(i, j, " better excl", prob_if_in_solution, "<", prob_if_not)
                 for k in range(j + 1):  # Iterate over number of successes  // at most j
                     dp[i][j][k] = dp[i-1][j][k]
                 
@@ -296,7 +296,7 @@ def is_eligible(p, sol, theta):
 
 import time
 # Example usage
-algo=2
+algo=1
 if __name__ == "__main__":
     p = [0.9999995, 0.999999, 0.999995, 0.99999, 0.99995, 0.9999, 0.9995, 0.999, 0.995, 0.99] * 5  # Probabilities of each variable being True
     # p = [0.999999, 0.999995, 0.99999, 0.99999, 0.99995, 0.9999, 0.9995, 0.999, 0.995, 0.99]  # Probabilities of each variable being True
