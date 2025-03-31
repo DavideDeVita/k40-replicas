@@ -13,4 +13,4 @@ set "fileList=!fileList:~1!"
 
 echo %fileList%
 
-go run %fileList% 0 0 
+go run %fileList% 0 0 0

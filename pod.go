@@ -28,7 +28,11 @@ func createRandomPod(id int) *Pod {
 
 	const _CP_MIN int = 15
 	var _CP_MAX_func func(int)int = func(tot_pods int)int {
-		return int(150.*(log10_int(tot_pods)-2.))+_CP_MIN		// 100.*
+		if tot_pods>100{
+			return int(150.*(log10_int(tot_pods)-2.))+_CP_MIN		// 100.*
+		}else{
+			return 25
+		}
 	} 
 	// const _CP_MAX_PERC func(int)int = 15 // = m*_CP_MAX_PERC/100
 

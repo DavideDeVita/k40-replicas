@@ -129,6 +129,34 @@ func matrixToCsv(filename string, matrix [][]float32, header []string, digits in
 	log.Println("CSV file created successfully")
 }
 
+func matrixToCsv_time(filename string, matrix [][]int64, header []string, digits int) (float64, string) {
+	// Find the max value in the last iteration
+	maxJ := len(matrix) - 1
+	var maxTime int64
+	for _, t := range matrix[maxJ] {
+		if t > maxTime {
+			maxTime = t
+		}
+	}
+	
+	// Determine the best unit
+	var scale float64 = 1.0
+	var unit string = "ns"
+
+	if maxTime > 1e9 {
+		scale = 1e9
+		unit = "s"
+	} else if maxTime > 1e6 {
+		scale = 1e6
+		unit = "ms"
+	} else if maxTime > 1e3 {
+		scale = 1e3
+		unit = "µs"
+	}
+
+	return scale, unit
+}
+
 func sortByPrimary_f64(primary []float64, secondary_scr []float32, secondary_wn []*WorkerNode, secondary_cns []ClusterNodeState, condition func(a, b float64) bool, reverse bool) {
 	n := len(primary)
 

@@ -41,13 +41,14 @@ var folderName string
 // Results (per test)
 var Acceptance_Ratio [][]float32 = make([][]float32, m)
 var Energy_cost_Ratio [][]float32 = make([][]float32, m)
+var Time_Complexity [][]float32 = make([][]float32, m)
 
 // Worker Nodes replicas for each algorithm
 var testClusters []*Cluster
 
 var _MAX_ENERGY_COST = -1
 
-const _Log LogLevel = Log_None
+const _Log LogLevel = Log_Scores
 const _log_on_stdout bool = false
 
 var logFile *os.File
@@ -59,7 +60,7 @@ var allPods []*Pod
 
 /*	*	*	*	*	*	Initialization	*	*	*	*	*	*/
 func init() {
-	parse_args() // Gives value to _test
+	select_test_byArgs() // Gives value to _test
 	init_log()
 
 	/*Initialization of parameters that depend on _test*/
@@ -81,6 +82,7 @@ func init() {
 	}
 
 	/** Worker Nodes creation */
+	// var wn WorkerNode
 	for i := 0; i < n; i++ {
 		wn := createRandomWorkerNode(i + 1 /*Id*/)
 
@@ -92,20 +94,41 @@ func init() {
 	}
 }
 
-func parse_args() {
+func create_workerNodes() {
+	var isLab bool = (os.Args[3] == "1")
+	/** Worker Nodes creation */
+	var wn WorkerNode
+	for i := 0; i < n; i++ {
+		if isLab {
+			switch i % 6 {
+			case 0: // Preempt RT - Assurance: mean =
+
+			}
+		} else {
+			wn = createRandomWorkerNode(i + 1 /*Id*/)
+		}
+		log.Println(wn)
+		// Every algo has the same nodes (copies of 'n' random generated nodes) inside
+		for t := range _test.Names {
+			testClusters[t].AddWorkerNode(wn.Copy())
+		}
+	}
+}
+
+func select_test_byArgs() {
 	_i_test := os.Args[1]
 	switch _i_test {
 	case "0": //custom
 		_test = Test{
-			name:           "custom_test",
+			name:           "PRT_ZAPU_test",
 			Names:          []string{"K4.0 Greedy", "K4.0 Dynamic", "K4.0 Dynamic ALL", "K8s_mostAllocated"},
 			Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__dynamic_allNodes, adding_new_pod__k8s},
 			Is_multiparam:  []bool{true, true, true, false},
 
 			Placing_scorer:  k8s_mostAllocated_score,
-			Placing_w:       5,
+			Placing_w:       3,
 			Multi_obj_funcs: []func(*WorkerNode, *Pod) float32{_energyCost_ratio, _computationPower_ratio, _log10_assurance_wasteless, _rt_waste},
-			Multi_obj_w:     []float32{2, 2, 1, 1},
+			Multi_obj_w:     []float32{2, 1, 1, 1},
 			Multi_obj_names: []string{"energy cost", "comput power", "log assurance", "rt waste"},
 		}
 		break
@@ -132,8 +155,8 @@ func parse_args() {
 		break
 	case "7":
 		_test = TEST_LeastAllocated_5Params
-		_test.Placing_w=5
-		_test.Multi_obj_w= []float32{3.,2.,2.,1.}
+		_test.Placing_w = 5
+		_test.Multi_obj_w = []float32{3., 2., 2., 1.}
 		_test.name += "_5-3-2-2-1"
 		// _test.name += fmt.Sprintf("_%d", int(_test.Placing_w))
 		// for _, w := range(_test.Multi_obj_w){
@@ -142,50 +165,50 @@ func parse_args() {
 		break
 	case "8":
 		_test = TEST_MostAllocated_5Params
-		_test.Placing_w=5
-		_test.Multi_obj_w= []float32{3.,2.,2.,1.}
+		_test.Placing_w = 5
+		_test.Multi_obj_w = []float32{3., 2., 2., 1.}
 		_test.name += "_5-3-2-2-1"
 		break
 	case "9":
 		_test = TEST_RequestedToCapacityRatio_5Params
-		_test.Placing_w=5
-		_test.Multi_obj_w= []float32{3.,2.,2.,1.}
+		_test.Placing_w = 5
+		_test.Multi_obj_w = []float32{3., 2., 2., 1.}
 		_test.name += "_5-3-2-2-1"
 		break
 	case "10":
 		_test = TEST_LeastAllocated_5Params
-		_test.Placing_w=4
-		_test.Multi_obj_w= []float32{2.,1.,1.,1.}
+		_test.Placing_w = 4
+		_test.Multi_obj_w = []float32{2., 1., 1., 1.}
 		_test.name += "_4-2-1-1-1"
 		break
 	case "11":
 		_test = TEST_MostAllocated_5Params
-		_test.Placing_w=4
-		_test.Multi_obj_w= []float32{2.,1.,1.,1.}
+		_test.Placing_w = 4
+		_test.Multi_obj_w = []float32{2., 1., 1., 1.}
 		_test.name += "_4-2-1-1-1"
 		break
 	case "12":
 		_test = TEST_RequestedToCapacityRatio_5Params
-		_test.Placing_w=4
-		_test.Multi_obj_w= []float32{2.,1.,1.,1.}
+		_test.Placing_w = 4
+		_test.Multi_obj_w = []float32{2., 1., 1., 1.}
 		_test.name += "_4-2-1-1-1"
 		break
 	case "13":
 		_test = TEST_LeastAllocated_5Params
-		_test.Placing_w=3
-		_test.Multi_obj_w= []float32{2.,1.,1.,1.}
+		_test.Placing_w = 3
+		_test.Multi_obj_w = []float32{2., 1., 1., 1.}
 		_test.name += "_3-2-1-1-1"
 		break
 	case "14":
 		_test = TEST_MostAllocated_5Params
-		_test.Placing_w=3
-		_test.Multi_obj_w= []float32{2.,1.,1.,1.}
+		_test.Placing_w = 3
+		_test.Multi_obj_w = []float32{2., 1., 1., 1.}
 		_test.name += "_3-2-1-1-1"
 		break
 	case "15":
 		_test = TEST_RequestedToCapacityRatio_5Params
-		_test.Placing_w=3
-		_test.Multi_obj_w= []float32{2.,1.,1.,1.}
+		_test.Placing_w = 3
+		_test.Multi_obj_w = []float32{2., 1., 1., 1.}
 		_test.name += "_3-2-1-1-1"
 		break
 	default:
@@ -232,9 +255,11 @@ func main_sequential() {
 		/*Init row for storing results (these will be written in a csv at the end)*/
 		Acceptance_Ratio[j] = make([]float32, nTests+1)
 		Energy_cost_Ratio[j] = make([]float32, nTests+1)
+		Time_Complexity[j] = make([]float32, nTests+1)
 		//first column is the index, unnecessary but i already wrote the plotting considering it
 		Acceptance_Ratio[j][0] = float32(j)
 		Energy_cost_Ratio[j][0] = float32(j)
+		Time_Complexity[j][0] = float32(j)
 
 		/*Adding new pod phase*/
 		//Create Random Pod
@@ -256,6 +281,7 @@ func main_sequential() {
 			//Results update
 			Acceptance_Ratio[j][t+1] = (float32(cluster.accepted) / float32(cluster._Total_Pods))
 			Energy_cost_Ratio[j][t+1] = (float32(cluster.energeticCost) / float32(cluster._Total_Energetic_Cost))
+			Time_Complexity[j][t+1] = float32(chronometers[t]) /// 1_000_000.0 // Convert ns to ms as float64
 
 			if _Log >= Log_Some {
 				log.Println(cluster)
@@ -301,8 +327,10 @@ func main_sequential() {
 			log.Println()
 		}
 	}
+
 	matrixToCsv(_FOLDER+"acceptance.csv", Acceptance_Ratio[:], append([]string{"pod index"}, _test.Names[:]...), 3)
 	matrixToCsv(_FOLDER+"energy.csv", Energy_cost_Ratio[:], append([]string{"pod index"}, _test.Names[:]...), 3)
+	matrixToCsv(_FOLDER+"time.csv", Time_Complexity[:], append([]string{"pod index"}, _test.Names[:]...), 3)
 	for t := range _test.Names {
 		log.Printf("[%s] - completed in %s\n", _test.Names[t], readableNanoseconds(chronometers[t]))
 		log.Println(testClusters[t])
@@ -674,7 +702,7 @@ func adding_new_pod__dynamic_allNodes(cluster *Cluster, pod *Pod,
 func DP_findEligibleSolution(n int, probabilities []float64, theta float64, overkillSize int) ([][][]float64, map[int][]int) {
 	// Initialize a 3D DP table
 	var maxJ int = _MAX_REPLICAS
-	if _MAX_REPLICAS < 0 || _MAX_REPLICAS>=n {
+	if _MAX_REPLICAS < 0 || _MAX_REPLICAS >= n {
 		maxJ = n
 	}
 
@@ -769,7 +797,7 @@ func _DP_permutateMinSolution(n int, probabilities []float64, theta float64, fir
 	size := len(firstEligible)
 
 	i := 0
-	for (i < _DP_Max_Neigh || _DP_Max_Neigh<0) && i < len(eligiblesNeigh) {
+	for (i < _DP_Max_Neigh || _DP_Max_Neigh < 0) && i < len(eligiblesNeigh) {
 		_sol := eligiblesNeigh[i]
 		if len(_sol) > 0 {
 			for idx := 0; idx < size; idx++ { // Increment idx

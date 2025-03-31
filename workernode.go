@@ -43,7 +43,7 @@ func (s *WN_Status) PodWasRemoved(p *Pod) {
 }
 
 /*********************** Worker Node ***********************/
-type WorkerNode struct {
+type WorkerNode struct {	
 	ID                int
 	CPU_Capacity      int
 	Disk_Capacity     int

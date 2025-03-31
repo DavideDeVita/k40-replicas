@@ -15,7 +15,7 @@ echo %fileList%
 
 for /L %%i in (4,1,15) do (
     for /L %%j in (1,1,10) do (
-        go run %fileList% %%i %%j 0
+        go run %fileList% %%i %%j 1
 
         echo Executed Test: %%i : %%j
     )
