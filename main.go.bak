@@ -326,7 +326,7 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 			exclude_ids.Add(id) // This set is used to mark the nodes (id) i already scanned, so I won't scan over them again when I go from High to Low to High to Low again
 			solution.AddToSolution(state_im_scanning, best_node)
 
-			probabilities = append(probabilities, best_node.Assurance.value())
+			probabilities = append(probabilities, best_node.Assurance)
 			prob_atleast_half = compute_probability_atLeastHalf(probabilities)
 			log.Printf("[K4.0 Greedy]: Prob h+: %.12f (theta = %.12f) \n", prob_atleast_half, theta)
 		}
@@ -411,7 +411,7 @@ func adding_new_pod__dynamic(cluster *Cluster, pod *Pod,
 				if node.EligibleFor(pod) {
 					// Filtering for eligibles
 					scores = append(scores, placer_scoring_func(node, pod))
-					assurances = append(assurances, node.Assurance.value())
+					assurances = append(assurances, node.Assurance)
 					references = append(references, node)
 					clusterstates = append(clusterstates, Active)
 
@@ -462,7 +462,7 @@ func adding_new_pod__dynamic(cluster *Cluster, pod *Pod,
 					scores = append(scores, placer_scoring_func(node, pod))
 					node.EnergyCost = true_cost
 
-					assurances = append(assurances, node.Assurance.value())
+					assurances = append(assurances, node.Assurance)
 					references = append(references, node)
 					clusterstates = append(clusterstates, Idle)
 
@@ -657,7 +657,7 @@ func adding_new_pod__k8s(cluster *Cluster, pod *Pod,
 		exclude_ids.Add(id)
 		solution.AddToSolution(state, node)
 
-		probabilities = append(probabilities, node.Assurance.value())
+		probabilities = append(probabilities, node.Assurance)
 		prob_atleast_half = compute_probability_atLeastHalf(probabilities)
 		log.Printf("[K8s]: Prob h+: %.12f (theta = %.12f) \n", prob_atleast_half, theta)
 	}

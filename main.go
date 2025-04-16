@@ -12,16 +12,16 @@ import (
 
 /* GLOBAL VARIABLES */
 // Number of Worker Nodes
-const n int = 20 //rand_ab_int(10, 25)
+const n int = 30 //rand_ab_int(10, 25)
 
 // Number of Pods
-const m int = 5000 // rand_ab_int(5000, 10000)
+const m int = 10000 // rand_ab_int(5000, 10000)
 
-const _MAX_REPLICAS int = 5
+const _MAX_REPLICAS int = -1
 const _DP_Max_Neigh int = -1
 
 const _DP_Xkeep = 1
-const _DP_neighSpan = 2
+const _DP_neighSpan = 3
 
 // Which algos am I comparing?
 var _test Test = TEST_LeastAllocated
@@ -42,13 +42,12 @@ var folderName string
 var Acceptance_Ratio [][]float32 = make([][]float32, m)
 var Energy_cost_Ratio [][]float32 = make([][]float32, m)
 var Time_Complexity [][]float32 = make([][]float32, m)
+var Replicas [][]int = make([][]int, m)
 
 // Worker Nodes replicas for each algorithm
 var testClusters []*Cluster
 
-var _MAX_ENERGY_COST = -1
-
-const _Log LogLevel = Log_Scores
+const _Log LogLevel = Log_None
 const _log_on_stdout bool = false
 
 var logFile *os.File
@@ -118,17 +117,31 @@ func create_workerNodes() {
 func select_test_byArgs() {
 	_i_test := os.Args[1]
 	switch _i_test {
-	case "0": //custom
+	case "-1": //custom
 		_test = Test{
-			name:           "PRT_ZAPU_test",
+			name:           "Lab",
 			Names:          []string{"K4.0 Greedy", "K4.0 Dynamic", "K4.0 Dynamic ALL", "K8s_mostAllocated"},
 			Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__dynamic_allNodes, adding_new_pod__k8s},
 			Is_multiparam:  []bool{true, true, true, false},
 
 			Placing_scorer:  k8s_mostAllocated_score,
 			Placing_w:       3,
-			Multi_obj_funcs: []func(*WorkerNode, *Pod) float32{_energyCost_ratio, _computationPower_ratio, _log10_assurance_wasteless, _rt_waste},
+			Multi_obj_funcs: []func(*WorkerNode, *Pod) float32{_energyCost_ratio, _computationPower_ratio, _sigma_assurance_wasteless, _rt_waste},
 			Multi_obj_w:     []float32{2, 1, 1, 1},
+			Multi_obj_names: []string{"energy cost", "comput power", "log assurance", "rt waste"},
+		}
+		break
+	case "0": //custom
+		_test = Test{
+			name:           "custom_test",
+			Names:          []string{"K4.0 Greedy", "K4.0 Dynamic", "K4.0 Dynamic ALL", "K8s_mostAllocated"},
+			Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__dynamic_allNodes, adding_new_pod__k8s},
+			Is_multiparam:  []bool{true, true, true, false},
+
+			Placing_scorer:  k8s_mostAllocated_score,
+			Placing_w:       3,
+			Multi_obj_funcs: []func(*WorkerNode, *Pod) float32{_energyCost_ratio, _computationPower_ratio, _sigma_assurance_wasteless, _rt_waste},
+			Multi_obj_w:     []float32{2, 1, 2, 1},
 			Multi_obj_names: []string{"energy cost", "comput power", "log assurance", "rt waste"},
 		}
 		break
@@ -177,39 +190,39 @@ func select_test_byArgs() {
 		break
 	case "10":
 		_test = TEST_LeastAllocated_5Params
-		_test.Placing_w = 4
+		_test.Placing_w = 3
 		_test.Multi_obj_w = []float32{2., 1., 1., 1.}
-		_test.name += "_4-2-1-1-1"
+		_test.name += "_3-2-1-1-1"
 		break
 	case "11":
 		_test = TEST_MostAllocated_5Params
-		_test.Placing_w = 4
+		_test.Placing_w = 3
 		_test.Multi_obj_w = []float32{2., 1., 1., 1.}
-		_test.name += "_4-2-1-1-1"
+		_test.name += "_3-2-1-1-1"
 		break
 	case "12":
 		_test = TEST_RequestedToCapacityRatio_5Params
-		_test.Placing_w = 4
+		_test.Placing_w = 3
 		_test.Multi_obj_w = []float32{2., 1., 1., 1.}
-		_test.name += "_4-2-1-1-1"
+		_test.name += "_3-2-1-1-1"
 		break
 	case "13":
 		_test = TEST_LeastAllocated_5Params
 		_test.Placing_w = 3
-		_test.Multi_obj_w = []float32{2., 1., 1., 1.}
-		_test.name += "_3-2-1-1-1"
+		_test.Multi_obj_w = []float32{2., 2., 1., 1.}
+		_test.name += "_3-2-2-1-1"
 		break
 	case "14":
 		_test = TEST_MostAllocated_5Params
 		_test.Placing_w = 3
-		_test.Multi_obj_w = []float32{2., 1., 1., 1.}
-		_test.name += "_3-2-1-1-1"
+		_test.Multi_obj_w = []float32{2., 2., 1., 1.}
+		_test.name += "_3-2-2-1-1"
 		break
 	case "15":
 		_test = TEST_RequestedToCapacityRatio_5Params
 		_test.Placing_w = 3
-		_test.Multi_obj_w = []float32{2., 1., 1., 1.}
-		_test.name += "_3-2-1-1-1"
+		_test.Multi_obj_w = []float32{2., 2., 1., 1.}
+		_test.name += "_3-2-2-1-1"
 		break
 	default:
 		os.Exit(2)
@@ -256,10 +269,12 @@ func main_sequential() {
 		Acceptance_Ratio[j] = make([]float32, nTests+1)
 		Energy_cost_Ratio[j] = make([]float32, nTests+1)
 		Time_Complexity[j] = make([]float32, nTests+1)
+		Replicas[j] = make([]int, nTests+1)
 		//first column is the index, unnecessary but i already wrote the plotting considering it
 		Acceptance_Ratio[j][0] = float32(j)
 		Energy_cost_Ratio[j][0] = float32(j)
 		Time_Complexity[j][0] = float32(j)
+		Replicas[j][0] = j
 
 		/*Adding new pod phase*/
 		//Create Random Pod
@@ -282,6 +297,7 @@ func main_sequential() {
 			Acceptance_Ratio[j][t+1] = (float32(cluster.accepted) / float32(cluster._Total_Pods))
 			Energy_cost_Ratio[j][t+1] = (float32(cluster.energeticCost) / float32(cluster._Total_Energetic_Cost))
 			Time_Complexity[j][t+1] = float32(chronometers[t]) /// 1_000_000.0 // Convert ns to ms as float64
+			Replicas[j][t+1] = solution.n_replicas
 
 			if _Log >= Log_Some {
 				log.Println(cluster)
@@ -294,22 +310,15 @@ func main_sequential() {
 					cluster.energeticCost, cluster._Total_Energetic_Cost, 100.*Energy_cost_Ratio[j][t+1],
 				)
 			}
+		}
 
-			//replicas benchmark
-			if solution.rejected {
-				R[t] = 0
-			} else {
-				R[t] = solution.n_replicas
+		if _Log >= Log_Scores && !const_array(R) {
+			// log.Printf("[Replicas D]\n\t[%s]: \t%d\n\t[%s]: \t%d\n\t[%s]: \t%d\n\n", _test.Names[0], R[0], _test.Names[1], R[1], _test.Names[2], R[2])
+			str := "[Replicas D]"
+			for _i, _ := range R {
+				str += fmt.Sprintf("\n\t[%s]: \t%d", _test.Names[_i], R[_i])
 			}
-
-			if _Log >= Log_Scores && t == nTests-1 && !const_array(R) {
-				// log.Printf("[Replicas D]\n\t[%s]: \t%d\n\t[%s]: \t%d\n\t[%s]: \t%d\n\n", _test.Names[0], R[0], _test.Names[1], R[1], _test.Names[2], R[2])
-				str := "[Replicas D]"
-				for _i, _ := range R {
-					str += fmt.Sprintf("\n\t[%s]: \t%d", _test.Names[_i], R[_i])
-				}
-				log.Printf("%s\n\n", str)
-			}
+			log.Printf("%s\n\n", str)
 		}
 
 		/*Running pods; some may complete, nodes may be shut down and stuff*/
@@ -331,6 +340,7 @@ func main_sequential() {
 	matrixToCsv(_FOLDER+"acceptance.csv", Acceptance_Ratio[:], append([]string{"pod index"}, _test.Names[:]...), 3)
 	matrixToCsv(_FOLDER+"energy.csv", Energy_cost_Ratio[:], append([]string{"pod index"}, _test.Names[:]...), 3)
 	matrixToCsv(_FOLDER+"time.csv", Time_Complexity[:], append([]string{"pod index"}, _test.Names[:]...), 3)
+	matrixToCsv_i(_FOLDER+"replicas.csv", Replicas[:], append([]string{"pod index"}, _test.Names[:]...), 3)
 	for t := range _test.Names {
 		log.Printf("[%s] - completed in %s\n", _test.Names[t], readableNanoseconds(chronometers[t]))
 		log.Println(testClusters[t])
@@ -339,6 +349,10 @@ func main_sequential() {
 	log.Printf("num rt: %d\n", _NumRT)
 	log.Printf("Max Replicas: %d\n", _MAX_REPLICAS)
 	log.Printf("DP Max Neigh: %d\n", _DP_Max_Neigh)
+	log.Printf("funcs:\n")
+	for i := 0; i < len(_weights); i++ {
+		log.Printf("\t%s : %.1f\n", _names[i], _weights[i])
+	}
 }
 
 func apply_solution(cluster *Cluster, pod *Pod, solution Solution, test_name string) {
@@ -368,7 +382,7 @@ func apply_solution(cluster *Cluster, pod *Pod, solution Solution, test_name str
 
 		cluster.PodAccepted()
 
-		if _Log >= Log_All {
+		if _Log >= Log_Scores {
 			// log.Printf("Solution applied by test %s\n", test_name)
 			// log.Println(solution)
 		}
@@ -393,7 +407,7 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 	var score float32 = -1.
 
 	var probabilities = []float64{}
-	var prob_atleast_half float64 = 0.
+	var prob_atleast_half float64 = -1.
 	var theta = float64(pod.Criticality)
 
 	for prob_atleast_half < theta {
@@ -427,7 +441,7 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 			exclude_ids.Add(id) // This set is used to mark the nodes (id) i already scanned, so I won't scan over them again when I go from High to Low to High to Low again
 			solution.AddToSolution(state_im_scanning, best_node)
 
-			probabilities = append(probabilities, best_node.Assurance.value())
+			probabilities = append(probabilities, best_node.Assurance)
 			prob_atleast_half = compute_probability_atLeastHalf(probabilities)
 			if _Log >= Log_Scores {
 				log.Printf("[K4.0 Greedy]: With wn %d -> Prob h+: %.12f (theta = %.12f) \n", id, prob_atleast_half, theta)
@@ -516,16 +530,16 @@ func adding_new_pod__dynamic(cluster *Cluster, pod *Pod,
 				if node.EligibleFor(pod) {
 					// Filtering for eligibles
 					scores = append(scores, placer_scoring_func(node, pod))
-					assurances = append(assurances, node.Assurance.value())
+					assurances = append(assurances, node.Assurance)
 					references = append(references, node)
 					clusterstates = append(clusterstates, Active)
 
-					if _Log >= Log_All {
+					if _Log >= Log_Scores {
 						log.Printf("[Dynamic]\tNode %d, Pod %d. Score: %.2f\n", node.ID, pod.ID, scores[len(scores)-1])
 					}
 				} else {
 					explain, reason := node.ExplainEligibility(pod)
-					if explain && _Log >= Log_All {
+					if explain && _Log >= Log_Scores {
 						log.Printf("[Dynamic]\tNode %d, Pod %d. Reason %s\n", node.ID, pod.ID, reason)
 					}
 				}
@@ -562,16 +576,16 @@ func adding_new_pod__dynamic(cluster *Cluster, pod *Pod,
 					scores = append(scores, placer_scoring_func(node, pod))
 					node.EnergyCost = true_cost
 
-					assurances = append(assurances, node.Assurance.value())
+					assurances = append(assurances, node.Assurance)
 					references = append(references, node)
 					clusterstates = append(clusterstates, Idle)
 
-					if _Log >= Log_All {
+					if _Log >= Log_Scores {
 						log.Printf("[Dynamic]\tNode %d, Pod %d. Score: %.2f\n", node.ID, pod.ID, scores[len(scores)-1])
 					}
 				} else {
 					explain, reason := node.ExplainEligibility(pod)
-					if explain && _Log >= Log_All {
+					if explain && _Log >= Log_Scores {
 						log.Printf("[Dynamic]\tNode %d, Pod %d. Reason %s\n", node.ID, pod.ID, reason)
 					}
 				}
@@ -626,7 +640,7 @@ func adding_new_pod__dynamic_allNodes(cluster *Cluster, pod *Pod,
 				if node.EligibleFor(pod) {
 					// Filtering for eligibles
 					scores = append(scores, placer_scoring_func(node, pod))
-					assurances = append(assurances, node.Assurance.value())
+					assurances = append(assurances, node.Assurance)
 					references = append(references, node)
 					clusterstates = append(clusterstates, Active)
 
@@ -656,7 +670,7 @@ func adding_new_pod__dynamic_allNodes(cluster *Cluster, pod *Pod,
 				scores = append(scores, placer_scoring_func(node, pod))
 				node.EnergyCost = true_cost
 
-				assurances = append(assurances, node.Assurance.value())
+				assurances = append(assurances, node.Assurance)
 				references = append(references, node)
 				clusterstates = append(clusterstates, Idle)
 
@@ -934,7 +948,7 @@ func adding_new_pod__k8s(cluster *Cluster, pod *Pod,
 	var score float32 = -1.
 
 	var probabilities = []float64{}
-	var prob_atleast_half float64 = 0.
+	var prob_atleast_half float64 = -1. //was 0.
 	var theta = float64(pod.Criticality)
 
 	// Find best among ALL nodes
@@ -964,7 +978,7 @@ func adding_new_pod__k8s(cluster *Cluster, pod *Pod,
 		exclude_ids.Add(id)
 		solution.AddToSolution(state, node)
 
-		probabilities = append(probabilities, node.Assurance.value())
+		probabilities = append(probabilities, node.Assurance)
 		prob_atleast_half = compute_probability_atLeastHalf(probabilities)
 		if _Log >= Log_Scores {
 			log.Printf("[K8s]: with wn %d -> Prob h+: %.12f (theta = %.12f) \n", id, prob_atleast_half, theta)

@@ -21,9 +21,7 @@ func rand_01() float32 {
 
 func rand_ab_int(a int, b int) int {
 	// Generate a random float32 in the range [0, 1)
-	r := rand_01()
-	r *= float32(b - a)
-	return int(r) + a
+	return a + rand.Intn(1+b-a)
 }
 
 func rand_ab_float(a float32, b float32) float32 {
@@ -60,6 +58,10 @@ func abs(val float32) float32 {
 	}
 }
 
+func log_f32(val float64, base float64) float32 {
+	return log10_f32(val)/log10_f32(base)
+}
+
 func log10_f32(val float64) float32 {
 	return float32(math.Log10(val))
 }
@@ -82,6 +84,10 @@ func float_to_str(num float32, dig int) string {
 
 func power_floor(base float64, exp int) int {
 	return int(math.Pow(base, float64(exp)))
+}
+
+func power_f64(base float64, exp float64) float64 {
+	return math.Pow(base, exp)
 }
 
 func matrixToCsv(filename string, matrix [][]float32, header []string, digits int) {
@@ -129,32 +135,49 @@ func matrixToCsv(filename string, matrix [][]float32, header []string, digits in
 	log.Println("CSV file created successfully")
 }
 
-func matrixToCsv_time(filename string, matrix [][]int64, header []string, digits int) (float64, string) {
-	// Find the max value in the last iteration
-	maxJ := len(matrix) - 1
-	var maxTime int64
-	for _, t := range matrix[maxJ] {
-		if t > maxTime {
-			maxTime = t
+func matrixToCsv_i(filename string, matrix [][]int, header []string, digits int) {
+	// Create a new CSV file
+	if !strings.HasSuffix(filename, ".csv") {
+		log.Println("filename (", filename, ") should be csv..")
+	}
+
+	// Removing evt file
+	err := os.Remove(filename)
+	if err != nil {
+		log.Println("Error deleting file:", err)
+	}
+
+	file, err := os.Create(filename)
+	if err != nil {
+		log.Println("Error creating file:", err)
+	}
+	defer file.Close()
+
+	// Create a new CSV writer
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	if header != nil && len(header) > 0 {
+		err := writer.Write(header)
+		if err != nil {
+			log.Println("Error writing header in CSV:", err)
 		}
 	}
-	
-	// Determine the best unit
-	var scale float64 = 1.0
-	var unit string = "ns"
 
-	if maxTime > 1e9 {
-		scale = 1e9
-		unit = "s"
-	} else if maxTime > 1e6 {
-		scale = 1e6
-		unit = "ms"
-	} else if maxTime > 1e3 {
-		scale = 1e3
-		unit = "µs"
+	// Write the matrix to the CSV file
+	for _, row := range matrix {
+		row_str := make([]string, len(row))
+		for i := range row {
+			row_str[i] = fmt.Sprintf("%d", row[i])
+		}
+
+		err := writer.Write(row_str)
+		if err != nil {
+			log.Println("Error writing row to CSV:", err)
+		}
 	}
 
-	return scale, unit
+	log.Println("CSV file created successfully")
 }
 
 func sortByPrimary_f64(primary []float64, secondary_scr []float32, secondary_wn []*WorkerNode, secondary_cns []ClusterNodeState, condition func(a, b float64) bool, reverse bool) {

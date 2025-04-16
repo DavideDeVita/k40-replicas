@@ -43,14 +43,14 @@ func (s *WN_Status) PodWasRemoved(p *Pod) {
 }
 
 /*********************** Worker Node ***********************/
-type WorkerNode struct {	
+type WorkerNode struct {
 	ID                int
 	CPU_Capacity      int
 	Disk_Capacity     int
 	RAM_Capacity      int
 	RealTime          bool
 	EnergyCost        int
-	Assurance         _Assurance // Assurance is now "the probability of not failing and is to be in [10^-7; 10^-2]"
+	Assurance         float64 // Assurance is now "the probability of not failing and is to be in [10^-7; 10^-2]"
 	Computation_Power int
 
 	pods   map[int]*Pod
@@ -63,7 +63,7 @@ func createRandomWorkerNode(id int) WorkerNode {
 	const cost_unit, cost_min, cost_max int = 50, 5, 50
 	const cp_min, cp_max int = 1, 5
 
-	var p_rt float32 = (_noRT_since + 1) / (_noRT_since + 2)
+	var p_rt float32 = (_noRT_since + 2) / (_noRT_since + 4)
 	var rt = rand_01() <= p_rt
 	var cpu_capacity int = rand_ab_int(br_min, br_max) * br_unit
 	var disk_capacity int = rand_ab_int(br_min, br_max) * br_unit
@@ -71,15 +71,12 @@ func createRandomWorkerNode(id int) WorkerNode {
 	var cp int = rand_ab_int(cp_min, cp_max)
 	var cost_f float32 = float32(rand_ab_int(cost_min, cost_max) * cost_unit)
 
-	var assurance _Assurance = rand__Assurance(rt)
+	var assurance float64 = random_Assurance(rt)
 
 	/*Realistic overprice*/
 	if _REALISTIC_OVERPRICE {
 		if rt {
 			cost_f *= rand_ab_float(1.25, 2.5)
-		}
-		if assurance >= 0.9995 {
-			cost_f *= rand_ab_float(1., 2.)
 		}
 
 		avg_br := (br_min + br_max) / 2. * br_unit
@@ -162,13 +159,13 @@ func (wn WorkerNode) Copy() *WorkerNode {
 func (wn WorkerNode) String() string {
 	ret := ""
 	ret += fmt.Sprintf("Worker Node %d (%d Pods currenty deployed).\n", wn.ID, len(wn.pods))
-	ret += fmt.Sprintf("\tReal time:\t\t%t\n", wn.RealTime)
+	ret += fmt.Sprintf("\tReal time:\t\t\t%t\n", wn.RealTime)
 	ret += fmt.Sprintf("\tCPU capacity:\t\t%d\tr:%d\tu:%d\n", wn.CPU_Capacity, wn.status.requestedCPU, wn.status.unrequestedCPU)
 	ret += fmt.Sprintf("\tDisk capacity:\t\t%d\tr:%d\tu:%d\n", wn.Disk_Capacity, wn.status.requestedDisk, wn.status.unrequestedDisk)
 	ret += fmt.Sprintf("\tRAM capacity:\t\t%d\tr:%d\tu:%d\n", wn.RAM_Capacity, wn.status.requestedRAM, wn.status.unrequestedRAM)
-	ret += fmt.Sprintf("\tActivation cost\t\t%d\n", wn.EnergyCost)
-	ret += fmt.Sprintf("\tAssurance\t\t%s\n", wn.Assurance)
-	ret += fmt.Sprintf("\tComputation power \t%.d\n", wn.Computation_Power)
+	ret += fmt.Sprintf("\tActivation cost:\t%d\n", wn.EnergyCost)
+	ret += fmt.Sprintf("\tAssurance:\t\t\t%.4f\n", wn.Assurance)
+	ret += fmt.Sprintf("\tComputation power:\t%.d\n", wn.Computation_Power)
 
 	return ret
 }
@@ -251,17 +248,17 @@ func (wn *WorkerNode) RemovePod(pod *Pod) {
 // Pud running
 func (wn *WorkerNode) RunPods(algoTag string) bool {
 	r := float64(rand_01())
-	var interference bool = r > wn.Assurance.value() // there is interference if randomValue is greater than assurance (assurance is chance of not having interference)
-	var heavyInteference bool = interference && rand_ab_int(0, 1+int(-log10_f32(1.-wn.Assurance.value())))==0		// heavy interference means no execution
+	var interference bool = r > wn.Assurance                                                            // there is interference if randomValue is greater than assurance (assurance is chance of not having interference)
+	var heavyInteference bool = interference && rand_ab_int(0, 1+int(-log_f32(1.-wn.Assurance, 1.25))) == 0 // heavy interference means no execution
 	if interference && (len(wn.pods) > 0) && _Log >= Log_Scores {
 		podlist := "\tPods affected: "
 		for _, p := range wn.pods {
 			podlist += fmt.Sprint(p.ID) + ", "
 		}
 		podlist = podlist[:len(podlist)-2]
-		if heavyInteference{
+		if heavyInteference {
 			log.Printf("[%s] Worker Node %d heavy interference.%s\n", algoTag, wn.ID, podlist)
-		}else{
+		} else {
 			log.Printf("[%s] Worker Node %d interference.%s\n", algoTag, wn.ID, podlist)
 		}
 	}

@@ -78,13 +78,8 @@
 #         print(e)
 #         i = 10
 
-#input set
-set1 = {(1,2), (3,4), (5, 6)}
+import os
 
-# a list of numbers to add
-list_to_add = [(5, 6), (7, 8), (1,2)]
-
-# add all elements of list to the set
-set1.update(list_to_add)
-
-print('Updated set after adding elements: ', set1)
+d = os.getcwd()
+os.
+print ("d is  ", d)

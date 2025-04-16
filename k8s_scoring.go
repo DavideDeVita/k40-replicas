@@ -1,6 +1,10 @@
 package main
 
-import "log"
+import (
+	"log"
+)
+
+var _MAX_ENERGY_COST = -1
 
 /********************** K8s Scorer **********************/
 
@@ -51,15 +55,40 @@ func _computationPower_ratio(node *WorkerNode, pod *Pod) float32 {
 	return 2. / float32(node.Computation_Power+1)
 }
 
+func _sigma_assurance(node *WorkerNode, pod *Pod) float32 {
+	return float32(1. / (1. + power_f64((node.Assurance)/(1-node.Assurance), 1.5)))
+}
+
+func _sigma_assurance_wasteless(node *WorkerNode, pod *Pod) float32 {
+	if node.Assurance >= pod.Criticality.value() {
+		return 0.
+	}
+	return _sigma_assurance(node, pod)
+}
+
+func _hsigma_assurance(node *WorkerNode, pod *Pod) float32 {
+	sigma := _sigma_assurance(node, pod)
+	return float32(2.*(1.-node.Assurance)) - sigma
+}
+
+func _hsigma_assurance_wasteless(node *WorkerNode, pod *Pod) float32 {
+	if node.Assurance >= pod.Criticality.value() {
+		return 0.
+	}
+	return _hsigma_assurance(node, pod)
+}
+
 func _log10_assurance(node *WorkerNode, pod *Pod) float32 {
-	return 1. - (-log10_f32(1.-node.Assurance.value()) / 10.)
+	// return 1. - (-log10_f32(1.-node.Assurance) / 10.)
+	a := ((node.Assurance-0.75)/(1-0.75))*(1-0.95) + 0.95
+	return 1. - (-log10_f32(1.-a) / 10.)
 }
 
 func _log10_assurance_wasteless(node *WorkerNode, pod *Pod) float32 {
-	if node.Assurance.value() >= pod.Criticality.value() {
+	if node.Assurance >= pod.Criticality.value() {
 		return 0.
 	}
-	return 1. - (-log10_f32(1.-node.Assurance.value()) / 10.)
+	return _log10_assurance(node, pod)
 }
 
 func _rt_waste(node *WorkerNode, pod *Pod) float32 {
@@ -104,7 +133,7 @@ func evaluate_score(node *WorkerNode, p *Pod) float32 {
 
 /********************** Eval conditions **********************/
 
-//No need to have 3 diff functions here
+// No need to have 3 diff functions here
 func k8s_leastAllocated_condition(score float32, best float32) bool {
 	return score < best
 }
