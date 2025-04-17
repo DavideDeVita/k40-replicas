@@ -2,8 +2,9 @@ package main
 
 import "fmt"
 
+/*	 ASSURANCE	 */
 // var _AssuranceS []float64 = []float64{0.99, 0.995, 0.999, 0.9995, 0.9999, 0.99995, 0.99999, 0.999995, 0.999999, 0.9999995, 0.9999999}
-var _AssuranceS []float64 = []float64{
+var _AssuranceValues []float64 = []float64{
 	0.1, 0.25, 0.33, 0.5, // Solo non rt	(!rt: 5 5 5 5)			Tot prob !rt: 31
 	0.66, 0.75, 0.8, 0.85, //	(!rt: 4, 3, 2, 2)	(rt: 3, 4, 4, 3)
 	0.9, 0.925, 0.95, 0.975, 0.99, // Solo rt				(rt: 2, 1, 1, 1, 1)		 Tot prob rt: 20
@@ -52,6 +53,7 @@ func random_Assurance(rt bool) float64 {
 	}
 }
 
+/*	 CRITICALITY	 */
 // _Criticality is the lowest acceptable probability (threshold) that at least half succeed
 //	 (for each solution, we compute the prob that at least half do not fail, if this prob is lower than this value, is rejected)
 type _Criticality float64
@@ -68,6 +70,12 @@ const ( //									 Prob nonRt   (sum = 27)			prob Rt (22)
 	ExtraCriticality   _Criticality = 0.995 // 									2
 	MaxCriticality     _Criticality = 0.999 // 									2
 )
+
+var _CriticalityValues []_Criticality = []_Criticality{
+	NoCriticality, MinCriticality, BarelyCriticality,
+	LowCriticality, MidLowCriticality, MidCriticality, MidHighCriticality, HighCriticality,
+	ExtraCriticality, MaxCriticality,
+}
 
 func random_Criticality(rt bool) _Criticality {
 	rnd := rand_01()
@@ -136,7 +144,7 @@ func (c _Criticality) value() float64 {
 	return float64(c)
 }
 
-// LogLevel
+/*	 Log Level	 */
 type LogLevel int
 
 const (
@@ -145,3 +153,12 @@ const (
 	Log_Scores LogLevel = 2
 	Log_All    LogLevel = 3
 )
+
+/*	 Interference Map	 */
+func __emptyIMap() map[float64]int {
+	var ret map[float64]int = map[float64]int{}
+	for _, c := range _CriticalityValues {
+		ret[c.value()] = 0
+	}
+	return ret
+}

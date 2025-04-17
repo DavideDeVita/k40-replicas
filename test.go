@@ -17,7 +17,7 @@ type Test struct {
 var TEST_LeastAllocated = Test{
 	name:           "leastAllocated",
 	Names:          []string{"K4.0 Greedy", "K4.0 Dynamic byState", "K4.0 Dynamic ALL", "K8s_mostAllocated"},
-	Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__dynamic_allNodes, adding_new_pod__k8s},
+	Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__pd_stateAware, adding_new_pod__pd_stateAgnostic, adding_new_pod__k8s},
 	Is_multiparam:  []bool{false, false, false, false},
 
 	Placing_scorer:  k8s_leastAllocated_score,
@@ -30,7 +30,7 @@ var TEST_LeastAllocated = Test{
 var TEST_MostAllocated = Test{
 	name:           "mostAllocated",
 	Names:          []string{"K4.0 Greedy", "K4.0 Dynamic byState", "K4.0 Dynamic ALL", "K8s_mostAllocated"},
-	Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__dynamic_allNodes, adding_new_pod__k8s},
+	Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__pd_stateAware, adding_new_pod__pd_stateAgnostic, adding_new_pod__k8s},
 	Is_multiparam:  []bool{false, false, false, false},
 
 	Placing_scorer:  k8s_mostAllocated_score,
@@ -43,7 +43,7 @@ var TEST_MostAllocated = Test{
 var TEST_RequestedToCapacityRatio = Test{
 	name:           "requestedToCapacityRatio",
 	Names:          []string{"K4.0 Greedy", "K4.0 Dynamic byState", "K4.0 Dynamic ALL", "K8s_mostAllocated"},
-	Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__dynamic_allNodes, adding_new_pod__k8s},
+	Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__pd_stateAware, adding_new_pod__pd_stateAgnostic, adding_new_pod__k8s},
 	Is_multiparam:  []bool{false, false, false, false},
 
 	Placing_scorer:  k8s_requestedToCapacityRatio_score,
@@ -59,7 +59,7 @@ var TEST_RequestedToCapacityRatio = Test{
 var TEST_LeastAllocated_5Params = Test{
 	name:           "leastAllocated",
 	Names:          []string{"K4.0 Greedy", "K4.0 Dynamic byState", "K4.0 Dynamic ALL", "K8s_leastAllocated"},
-	Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__dynamic_allNodes, adding_new_pod__k8s},
+	Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__pd_stateAware, adding_new_pod__pd_stateAgnostic, adding_new_pod__k8s},
 	Is_multiparam:  []bool{true, true, true, false},
 
 	Placing_scorer:  k8s_leastAllocated_score,
@@ -72,7 +72,7 @@ var TEST_LeastAllocated_5Params = Test{
 var TEST_MostAllocated_5Params = Test{
 	name:           "mostAllocated",
 	Names:          []string{"K4.0 Greedy", "K4.0 Dynamic byState", "K4.0 Dynamic ALL", "K8s_mostAllocated"},
-	Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__dynamic_allNodes, adding_new_pod__k8s},
+	Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__pd_stateAware, adding_new_pod__pd_stateAgnostic, adding_new_pod__k8s},
 	Is_multiparam:  []bool{true, true, true, false},
 
 	Placing_scorer:  k8s_mostAllocated_score,
@@ -85,7 +85,7 @@ var TEST_MostAllocated_5Params = Test{
 var TEST_RequestedToCapacityRatio_5Params = Test{
 	name:           "requestedToCapacityRatio",
 	Names:          []string{"K4.0 Greedy", "K4.0 Dynamic byState", "K4.0 Dynamic ALL", "K8s_requestedToCapacityRatio"},
-	Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__dynamic_allNodes, adding_new_pod__k8s},
+	Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__pd_stateAware, adding_new_pod__pd_stateAgnostic, adding_new_pod__k8s},
 	Is_multiparam:  []bool{true, true, true, false},
 
 	Placing_scorer:  k8s_requestedToCapacityRatio_score,

@@ -12,10 +12,10 @@ import (
 
 /* GLOBAL VARIABLES */
 // Number of Worker Nodes
-const n int = 30 //rand_ab_int(10, 25)
+const n int = 20 //rand_ab_int(10, 25)
 
 // Number of Pods
-const m int = 10000 // rand_ab_int(5000, 10000)
+const m int = 5000 // rand_ab_int(5000, 10000)
 
 const _MAX_REPLICAS int = -1
 const _DP_Max_Neigh int = -1
@@ -43,6 +43,7 @@ var Acceptance_Ratio [][]float32 = make([][]float32, m)
 var Energy_cost_Ratio [][]float32 = make([][]float32, m)
 var Time_Complexity [][]float32 = make([][]float32, m)
 var Replicas [][]int = make([][]int, m)
+var Intereferences []map[float64]int
 
 // Worker Nodes replicas for each algorithm
 var testClusters []*Cluster
@@ -68,6 +69,9 @@ func init() {
 
 	init_scoring_params(_test)
 
+	/*Init I Map*/
+	Intereferences = make([]map[float64]int, nTests)
+
 	/*Creation of the clusters*/
 	testClusters = make([]*Cluster, nTests)
 	chronometers = make([]int64, nTests)
@@ -78,6 +82,7 @@ func init() {
 		} else {
 			Scorers = append(Scorers, _test.Placing_scorer)
 		}
+		Intereferences[t] = __emptyIMap()
 	}
 
 	/** Worker Nodes creation */
@@ -121,28 +126,28 @@ func select_test_byArgs() {
 		_test = Test{
 			name:           "Lab",
 			Names:          []string{"K4.0 Greedy", "K4.0 Dynamic", "K4.0 Dynamic ALL", "K8s_mostAllocated"},
-			Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__dynamic_allNodes, adding_new_pod__k8s},
+			Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__pd_stateAware, adding_new_pod__pd_stateAgnostic, adding_new_pod__k8s},
 			Is_multiparam:  []bool{true, true, true, false},
 
 			Placing_scorer:  k8s_mostAllocated_score,
-			Placing_w:       3,
-			Multi_obj_funcs: []func(*WorkerNode, *Pod) float32{_energyCost_ratio, _computationPower_ratio, _sigma_assurance_wasteless, _rt_waste},
-			Multi_obj_w:     []float32{2, 1, 1, 1},
-			Multi_obj_names: []string{"energy cost", "comput power", "log assurance", "rt waste"},
+			Placing_w:       5,
+			Multi_obj_funcs: []func(*WorkerNode, *Pod) float32{_energyCost_ratio, _sigma_assurance_wasteless, _computationPower_ratio, _rt_waste},
+			Multi_obj_w:     []float32{3, 2, 1, 1},
+			Multi_obj_names: []string{"energy cost", "log assurance", "comput power", "rt waste"},
 		}
 		break
 	case "0": //custom
 		_test = Test{
 			name:           "custom_test",
 			Names:          []string{"K4.0 Greedy", "K4.0 Dynamic", "K4.0 Dynamic ALL", "K8s_mostAllocated"},
-			Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__dynamic, adding_new_pod__dynamic_allNodes, adding_new_pod__k8s},
+			Algo_callables: []func(*Cluster, *Pod, func(*WorkerNode, *Pod) float32) Solution{adding_new_pod__greedy, adding_new_pod__pd_stateAware, adding_new_pod__pd_stateAgnostic, adding_new_pod__k8s},
 			Is_multiparam:  []bool{true, true, true, false},
 
 			Placing_scorer:  k8s_mostAllocated_score,
-			Placing_w:       3,
-			Multi_obj_funcs: []func(*WorkerNode, *Pod) float32{_energyCost_ratio, _computationPower_ratio, _sigma_assurance_wasteless, _rt_waste},
-			Multi_obj_w:     []float32{2, 1, 2, 1},
-			Multi_obj_names: []string{"energy cost", "comput power", "log assurance", "rt waste"},
+			Placing_w:       5,
+			Multi_obj_funcs: []func(*WorkerNode, *Pod) float32{_energyCost_ratio, _sigma_assurance_wasteless, _computationPower_ratio, _rt_waste},
+			Multi_obj_w:     []float32{3, 2, 1, 1},
+			Multi_obj_names: []string{"energy cost", "log assurance", "comput power", "rt waste"},
 		}
 		break
 	case "1":
@@ -325,7 +330,7 @@ func main_sequential() {
 		for t, tag := range _test.Names {
 			cluster = testClusters[t]
 			for _, wn := range cluster.All_list() {
-				completed := wn.RunPods(tag)
+				completed := wn.RunPods(tag, Intereferences[t])
 				if completed {
 					cluster.DeactivateWorkerNode(wn.ID)
 				}
@@ -340,7 +345,8 @@ func main_sequential() {
 	matrixToCsv(_FOLDER+"acceptance.csv", Acceptance_Ratio[:], append([]string{"pod index"}, _test.Names[:]...), 3)
 	matrixToCsv(_FOLDER+"energy.csv", Energy_cost_Ratio[:], append([]string{"pod index"}, _test.Names[:]...), 3)
 	matrixToCsv(_FOLDER+"time.csv", Time_Complexity[:], append([]string{"pod index"}, _test.Names[:]...), 3)
-	matrixToCsv_i(_FOLDER+"replicas.csv", Replicas[:], append([]string{"pod index"}, _test.Names[:]...), 3)
+	matrixToCsv_i(_FOLDER+"replicas.csv", Replicas[:], append([]string{"pod index"}, _test.Names[:]...))
+	mapsToCsv_i(_FOLDER+"interference.csv", Intereferences[:], append([]string{"pod criticality"}, _test.Names[:]...))
 	for t := range _test.Names {
 		log.Printf("[%s] - completed in %s\n", _test.Names[t], readableNanoseconds(chronometers[t]))
 		log.Println(testClusters[t])
@@ -509,7 +515,7 @@ func find_best_wn(nodes map[int]*WorkerNode, pod *Pod,
 /* Dynamic */
 /** Greedy approach */
 
-func adding_new_pod__dynamic(cluster *Cluster, pod *Pod,
+func adding_new_pod__pd_stateAware(cluster *Cluster, pod *Pod,
 	placer_scoring_func func(*WorkerNode, *Pod) float32,
 ) Solution {
 
@@ -619,7 +625,7 @@ func adding_new_pod__dynamic(cluster *Cluster, pod *Pod,
 	return solution
 }
 
-func adding_new_pod__dynamic_allNodes(cluster *Cluster, pod *Pod,
+func adding_new_pod__pd_stateAgnostic(cluster *Cluster, pod *Pod,
 	placer_scoring_func func(*WorkerNode, *Pod) float32,
 ) Solution {
 

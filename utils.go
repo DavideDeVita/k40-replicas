@@ -59,7 +59,7 @@ func abs(val float32) float32 {
 }
 
 func log_f32(val float64, base float64) float32 {
-	return log10_f32(val)/log10_f32(base)
+	return log10_f32(val) / log10_f32(base)
 }
 
 func log10_f32(val float64) float32 {
@@ -135,7 +135,7 @@ func matrixToCsv(filename string, matrix [][]float32, header []string, digits in
 	log.Println("CSV file created successfully")
 }
 
-func matrixToCsv_i(filename string, matrix [][]int, header []string, digits int) {
+func matrixToCsv_i(filename string, matrix [][]int, header []string) {
 	// Create a new CSV file
 	if !strings.HasSuffix(filename, ".csv") {
 		log.Println("filename (", filename, ") should be csv..")
@@ -178,6 +178,23 @@ func matrixToCsv_i(filename string, matrix [][]int, header []string, digits int)
 	}
 
 	log.Println("CSV file created successfully")
+}
+
+func mapsToCsv_i(filename string, I_map []map[float64]int, header []string) {
+	/*Convert the map to a matrix*/
+	var matrix [][]float32 = make([][]float32, len(I_map)+1)
+	matrix[0] = []float32{}
+
+	for i, _ := range I_map{
+		matrix[i] = make([]float32, 0)
+		for crit, count := range I_map[i]{
+			if i==0{
+				matrix[0] = append(matrix[0], crit)
+			}
+			matrix[i+1] = append(matrix[i+1], float32(count))
+		}
+	}
+
 }
 
 func sortByPrimary_f64(primary []float64, secondary_scr []float32, secondary_wn []*WorkerNode, secondary_cns []ClusterNodeState, condition func(a, b float64) bool, reverse bool) {

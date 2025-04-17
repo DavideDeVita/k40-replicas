@@ -246,20 +246,28 @@ func (wn *WorkerNode) RemovePod(pod *Pod) {
 }
 
 // Pud running
-func (wn *WorkerNode) RunPods(algoTag string) bool {
+func (wn *WorkerNode) RunPods(algoTag string, I_map map[float64]int) bool {
 	r := float64(rand_01())
 	var interference bool = r > wn.Assurance                                                            // there is interference if randomValue is greater than assurance (assurance is chance of not having interference)
 	var heavyInteference bool = interference && rand_ab_int(0, 1+int(-log_f32(1.-wn.Assurance, 1.25))) == 0 // heavy interference means no execution
-	if interference && (len(wn.pods) > 0) && _Log >= Log_Scores {
-		podlist := "\tPods affected: "
-		for _, p := range wn.pods {
-			podlist += fmt.Sprint(p.ID) + ", "
+	if interference && (len(wn.pods) > 0){
+		// Counting interferences suffered per C.value(), heavy and light are the same
+		for _, pod := range wn.pods{
+			I_map[pod.Criticality.value()] += 1
 		}
-		podlist = podlist[:len(podlist)-2]
-		if heavyInteference {
-			log.Printf("[%s] Worker Node %d heavy interference.%s\n", algoTag, wn.ID, podlist)
-		} else {
-			log.Printf("[%s] Worker Node %d interference.%s\n", algoTag, wn.ID, podlist)
+
+		// Logging Interference
+	 	if _Log >= Log_Scores {
+			podlist := "\tPods affected: "
+			for _, p := range wn.pods {
+				podlist += fmt.Sprint(p.ID) + ", "
+			}
+			podlist = podlist[:len(podlist)-2]
+			if heavyInteference {
+				log.Printf("[%s] Worker Node %d heavy interference.%s\n", algoTag, wn.ID, podlist)
+			} else {
+				log.Printf("[%s] Worker Node %d interference.%s\n", algoTag, wn.ID, podlist)
+			}
 		}
 	}
 
