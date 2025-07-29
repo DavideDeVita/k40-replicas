@@ -295,9 +295,9 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 	var id int = -1
 	var score float32 = -1.
 
-	var probabilities = []float64{}
-	var prob_atleast_half float64 = 0.
-	var theta = float64(pod.Criticality)
+	var probabilities = []float32{}
+	var prob_atleast_half float32 = 0.
+	var theta = float32(pod.Criticality)
 
 	for prob_atleast_half < theta {
 		/* Search greedily the best node */
@@ -328,7 +328,7 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 
 			probabilities = append(probabilities, best_node.Assurance)
 			prob_atleast_half = compute_probability_atLeastHalf(probabilities)
-			log.Printf("[K4.0 Greedy]: Prob h+: %.12f (theta = %.12f) \n", prob_atleast_half, theta)
+			log.Printf("[K4.0 Greedy]: Prob h+: %.5f (theta = %.5f) \n", prob_atleast_half, theta)
 		}
 	}
 
@@ -401,7 +401,7 @@ func adding_new_pod__dynamic(cluster *Cluster, pod *Pod,
 
 	// It is my responsability to create the vectors for assurances, scores and references
 	var scores []float32
-	var assurances []float64 // Probabilities
+	var assurances []float32 // Probabilities
 	var references []*WorkerNode
 	var clusterstates []ClusterNodeState
 
@@ -440,7 +440,7 @@ func adding_new_pod__dynamic(cluster *Cluster, pod *Pod,
 		_, el_solutions = _create_dynamic_programming_matrix(assurances, pod, DP_Xkeep)
 		/*If no solution byScores, try byAssurance		 max to min*/
 		if len(el_solutions) == 0 {
-			sortByPrimary_f64(assurances, scores, references, clusterstates, func(a, b float64) bool {
+			sortByPrimary_f32(assurances, scores, references, clusterstates, func(a, b float32) bool {
 				return a < b
 			}, true)
 			_, el_solutions = _create_dynamic_programming_matrix(assurances, pod, DP_Xkeep)
@@ -490,7 +490,7 @@ func adding_new_pod__dynamic(cluster *Cluster, pod *Pod,
 		_, el_solutions = _create_dynamic_programming_matrix(assurances, pod, DP_Xkeep)
 		/*If no solution byScores, try byAssurance		 max to min*/
 		if len(el_solutions) == 0 {
-			sortByPrimary_f64(assurances, scores, references, clusterstates, func(a, b float64) bool {
+			sortByPrimary_f32(assurances, scores, references, clusterstates, func(a, b float32) bool {
 				return a < b
 			}, true)
 			_, el_solutions = _create_dynamic_programming_matrix(assurances, pod, DP_Xkeep)
@@ -512,26 +512,26 @@ func adding_new_pod__dynamic(cluster *Cluster, pod *Pod,
 type DP_Entry struct {
 	start             int
 	end               int
-	prob_atLeast_half float64
+	prob_atLeast_half float32
 	score             float32
 }
 
-func _create_dynamic_programming_matrix(p []float64, pod *Pod,
+func _create_dynamic_programming_matrix(p []float32, pod *Pod,
 	x_keep int,
-) ([][][]float64, map[int][]DP_Entry) {
+) ([][][]float32, map[int][]DP_Entry) {
 	// Init DP variables
 	var first_el_amount int = -1
 	eligibles := make(map[int][]DP_Entry)
 
-	var theta float64 = pod.Criticality.value()
+	var theta float32 = pod.Criticality.value()
 	n := len(p)
 
 	// Create a 3D DP table initialized to 0.0
-	dp := make([][][]float64, n)
+	dp := make([][][]float32, n)
 	for i := 0; i < n; i++ {
-		dp[i] = make([][]float64, n)
+		dp[i] = make([][]float32, n)
 		for j := 0; j < n; j++ {
-			dp[i][j] = make([]float64, n+1)
+			dp[i][j] = make([]float32, n+1)
 		}
 	}
 
@@ -599,7 +599,7 @@ func choose_DP_entry(eligibles map[int][]DP_Entry, scores []float32) DP_Entry {
 				best_score = score
 				best_entry = entry
 				// log.Println("New best entry", entry)
-				// log.Printf("\t%d - %d : %.7f\t Score: %.4f\n\n", entry.start, entry.end, entry.prob_atLeast_half, score)
+				// log.Printf("\t%d - %d : %.5f\t Score: %.4f\n\n", entry.start, entry.end, entry.prob_atLeast_half, score)
 			}
 		}
 	}
@@ -630,9 +630,9 @@ func adding_new_pod__k8s(cluster *Cluster, pod *Pod,
 	var id int = -1
 	var score float32 = -1.
 
-	var probabilities = []float64{}
-	var prob_atleast_half float64 = 0.
-	var theta = float64(pod.Criticality)
+	var probabilities = []float32{}
+	var prob_atleast_half float32 = 0.
+	var theta = float32(pod.Criticality)
 
 	// Find best among ALL nodes
 	var allNodes_map = cluster.All_map()
@@ -659,7 +659,7 @@ func adding_new_pod__k8s(cluster *Cluster, pod *Pod,
 
 		probabilities = append(probabilities, node.Assurance)
 		prob_atleast_half = compute_probability_atLeastHalf(probabilities)
-		log.Printf("[K8s]: Prob h+: %.12f (theta = %.12f) \n", prob_atleast_half, theta)
+		log.Printf("[K8s]: Prob h+: %.5f (theta = %.5f) \n", prob_atleast_half, theta)
 	}
 
 	// log.Printf("%s\n", solution)

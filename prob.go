@@ -1,9 +1,9 @@
 package main
 
-func compute_probability_atLeastHalf(p []float64) float64 {
+func compute_probability_atLeastHalf(p []float32) float32 {
 	n := len(p)
 	// Initialize dp array with size n+1
-	dp := make([]float64, n+1)
+	dp := make([]float32, n+1)
 	dp[0] = 1.0 // Base case: probability of 0 true variables is 1
 
 	// Iterate over each probabilistic variable
@@ -17,7 +17,7 @@ func compute_probability_atLeastHalf(p []float64) float64 {
 	}
 
 	// Sum up probabilities for at least m true variables
-	prob := 0.0
+	prob := float32(0.0)
 	m := (n / 2) + 1
 	for k := m; k <= n; k++ {
 		prob += dp[k]

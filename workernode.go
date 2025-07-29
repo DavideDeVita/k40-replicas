@@ -50,7 +50,7 @@ type WorkerNode struct {
 	RAM_Capacity      int
 	RealTime          bool
 	EnergyCost        int
-	Assurance         float64 // Assurance is now "the probability of not failing and is to be in [10^-7; 10^-2]"
+	Assurance         float32 // Assurance is now "the probability of not failing and is to be in [10^-7; 10^-2]"
 	Computation_Power int
 
 	pods   map[int]*Pod
@@ -71,7 +71,7 @@ func createRandomWorkerNode(id int) WorkerNode {
 	var cp int = rand_ab_int(cp_min, cp_max)
 	var cost_f float32 = float32(rand_ab_int(cost_min, cost_max) * cost_unit)
 
-	var assurance float64 = random_Assurance(rt)
+	var assurance float32 = random_Assurance(rt)
 
 	/*Realistic overprice*/
 	if _REALISTIC_OVERPRICE {
@@ -246,18 +246,18 @@ func (wn *WorkerNode) RemovePod(pod *Pod) {
 }
 
 // Pud running
-func (wn *WorkerNode) RunPods(algoTag string, I_map map[float64]int) bool {
-	r := float64(rand_01())
+func (wn *WorkerNode) RunPods(algoTag string, algo_idx int) bool {
+	r := float32(rand_01())
 	var interference bool = r > wn.Assurance                                                            // there is interference if randomValue is greater than assurance (assurance is chance of not having interference)
 	var heavyInteference bool = interference && rand_ab_int(0, 1+int(-log_f32(1.-wn.Assurance, 1.25))) == 0 // heavy interference means no execution
 	if interference && (len(wn.pods) > 0){
 		// Counting interferences suffered per C.value(), heavy and light are the same
 		for _, pod := range wn.pods{
-			I_map[pod.Criticality.value()] += 1
+			recordInterference(pod.ID, algo_idx, wn.ID)
 		}
 
 		// Logging Interference
-	 	if _Log >= Log_Scores {
+	 	if _Log >= Log_Some {
 			podlist := "\tPods affected: "
 			for _, p := range wn.pods {
 				podlist += fmt.Sprint(p.ID) + ", "
@@ -276,7 +276,7 @@ func (wn *WorkerNode) RunPods(algoTag string, I_map map[float64]int) bool {
 		for _, pod := range wn.pods {
 			complete := pod.Run(wn, interference, heavyInteference)
 			if complete {
-				if _Log >= Log_Some {
+				if _Log >= Log_Scores {
 					log.Printf("[%s] Pod %d completed on worker node %d\n", algoTag, pod.ID, wn.ID)
 				}
 				completed = append(completed, pod)

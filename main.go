@@ -12,16 +12,16 @@ import (
 
 /* GLOBAL VARIABLES */
 // Number of Worker Nodes
-const n int = 20 //rand_ab_int(10, 25)
+const n int = 30 //rand_ab_int(10, 25)
 
 // Number of Pods
-const m int = 5000 // rand_ab_int(5000, 10000)
+const m int = 1000 // rand_ab_int(5000, 10000)
 
 const _MAX_REPLICAS int = -1
 const _DP_Max_Neigh int = -1
 
 const _DP_Xkeep = 1
-const _DP_neighSpan = 3
+const _DP_neighSpan = 2
 
 // Which algos am I comparing?
 var _test Test = TEST_LeastAllocated
@@ -43,12 +43,14 @@ var Acceptance_Ratio [][]float32 = make([][]float32, m)
 var Energy_cost_Ratio [][]float32 = make([][]float32, m)
 var Time_Complexity [][]float32 = make([][]float32, m)
 var Replicas [][]int = make([][]int, m)
-var Intereferences []map[float64]int
+// var Intereferences_byC [][]float32
+var Intereferences_byC_byWN [][]string
+// var Accepted_byC [][]float32
 
 // Worker Nodes replicas for each algorithm
 var testClusters []*Cluster
 
-const _Log LogLevel = Log_None
+const _Log LogLevel = Log_Some
 const _log_on_stdout bool = false
 
 var logFile *os.File
@@ -70,7 +72,8 @@ func init() {
 	init_scoring_params(_test)
 
 	/*Init I Map*/
-	Intereferences = make([]map[float64]int, nTests)
+	_, Intereferences_byC_byWN = __make_InterferenceCounter(nTests, m)
+	// Accepted_byC = __make_InterferenceCounter(nTests)
 
 	/*Creation of the clusters*/
 	testClusters = make([]*Cluster, nTests)
@@ -82,7 +85,6 @@ func init() {
 		} else {
 			Scorers = append(Scorers, _test.Placing_scorer)
 		}
-		Intereferences[t] = __emptyIMap()
 	}
 
 	/** Worker Nodes creation */
@@ -284,6 +286,8 @@ func main_sequential() {
 		/*Adding new pod phase*/
 		//Create Random Pod
 		pod = createRandomPod(j)
+		Intereferences_byC_byWN[j][1] = fmt.Sprintf("%.3f", pod.Criticality.value())
+
 		if _Log >= Log_Some {
 			log.Println(pod)
 		}
@@ -294,14 +298,14 @@ func main_sequential() {
 			//Start the chronometer
 			stopwatch = time.Now()
 			solution = _test.Algo_callables[t](cluster, pod, Scorers[t]) // Solution is an "insertion plan"
-			apply_solution(cluster, pod.Copy(), solution, _test.Names[t])
+			apply_solution(cluster, pod.Copy(), solution, _test.Names[t], t)
 			chronometers[t] += time.Since(stopwatch).Nanoseconds()
 			//
 
 			//Results update
 			Acceptance_Ratio[j][t+1] = (float32(cluster.accepted) / float32(cluster._Total_Pods))
 			Energy_cost_Ratio[j][t+1] = (float32(cluster.energeticCost) / float32(cluster._Total_Energetic_Cost))
-			Time_Complexity[j][t+1] = float32(chronometers[t]) /// 1_000_000.0 // Convert ns to ms as float64
+			Time_Complexity[j][t+1] = float32(chronometers[t]) /// 1_000_000.0 // Convert ns to ms as float32
 			Replicas[j][t+1] = solution.n_replicas
 
 			if _Log >= Log_Some {
@@ -330,7 +334,7 @@ func main_sequential() {
 		for t, tag := range _test.Names {
 			cluster = testClusters[t]
 			for _, wn := range cluster.All_list() {
-				completed := wn.RunPods(tag, Intereferences[t])
+				completed := wn.RunPods(tag, t)
 				if completed {
 					cluster.DeactivateWorkerNode(wn.ID)
 				}
@@ -341,12 +345,14 @@ func main_sequential() {
 			log.Println()
 		}
 	}
-
+ 
 	matrixToCsv(_FOLDER+"acceptance.csv", Acceptance_Ratio[:], append([]string{"pod index"}, _test.Names[:]...), 3)
 	matrixToCsv(_FOLDER+"energy.csv", Energy_cost_Ratio[:], append([]string{"pod index"}, _test.Names[:]...), 3)
 	matrixToCsv(_FOLDER+"time.csv", Time_Complexity[:], append([]string{"pod index"}, _test.Names[:]...), 3)
 	matrixToCsv_i(_FOLDER+"replicas.csv", Replicas[:], append([]string{"pod index"}, _test.Names[:]...))
-	mapsToCsv_i(_FOLDER+"interference.csv", Intereferences[:], append([]string{"pod criticality"}, _test.Names[:]...))
+	// matrixToCsv(_FOLDER+"interference.csv", Intereferences_byC[:], append([]string{"pod criticality"}, _test.Names[:]...), 3)
+	matrixToCsv_s(_FOLDER+"accepted_byC.csv", Intereferences_byC_byWN[:], append([]string{"pod ID", "pod criticality"}, _test.Names[:]...), 3)
+
 	for t := range _test.Names {
 		log.Printf("[%s] - completed in %s\n", _test.Names[t], readableNanoseconds(chronometers[t]))
 		log.Println(testClusters[t])
@@ -361,7 +367,7 @@ func main_sequential() {
 	}
 }
 
-func apply_solution(cluster *Cluster, pod *Pod, solution Solution, test_name string) {
+func apply_solution(cluster *Cluster, pod *Pod, solution Solution, test_name string, algo_idx int) {
 	if solution.rejected {
 		if _Log >= Log_Some {
 			log.Printf("[%s]\tpod %d rejected\n", test_name, pod.ID)
@@ -387,12 +393,14 @@ func apply_solution(cluster *Cluster, pod *Pod, solution Solution, test_name str
 		}
 
 		cluster.PodAccepted()
+		// Accepted_byC[_Criticality_IdxLookup[pod.Criticality]][algo_idx+1] += 1
 
 		if _Log >= Log_Scores {
 			// log.Printf("Solution applied by test %s\n", test_name)
 			// log.Println(solution)
 		}
 	}
+	recordDeployment(pod.ID, algo_idx, solution)
 }
 
 /*** These are the functions in the Callables vector ***/
@@ -412,9 +420,9 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 	var id int = -1
 	var score float32 = -1.
 
-	var probabilities = []float64{}
-	var prob_atleast_half float64 = -1.
-	var theta = float64(pod.Criticality)
+	var probabilities = []float32{}
+	var prob_atleast_half float32 = -1.
+	var theta = float32(pod.Criticality)
 
 	for prob_atleast_half < theta {
 		if _MAX_REPLICAS > 0 && solution.n_replicas == _MAX_REPLICAS {
@@ -450,7 +458,7 @@ func adding_new_pod__greedy(cluster *Cluster, pod *Pod,
 			probabilities = append(probabilities, best_node.Assurance)
 			prob_atleast_half = compute_probability_atLeastHalf(probabilities)
 			if _Log >= Log_Scores {
-				log.Printf("[K4.0 Greedy]: With wn %d -> Prob h+: %.12f (theta = %.12f) \n", id, prob_atleast_half, theta)
+				log.Printf("[K4.0 Greedy]: With wn %d -> Prob h+: %.5f (theta = %.5f) \n", id, prob_atleast_half, theta)
 			}
 		}
 	}
@@ -524,7 +532,7 @@ func adding_new_pod__pd_stateAware(cluster *Cluster, pod *Pod,
 
 	// It is my responsability to create the vectors for assurances, scores and references
 	var scores []float32
-	var assurances []float64 // Probabilities
+	var assurances []float32 // Probabilities
 	var references []*WorkerNode
 	var clusterstates []ClusterNodeState
 	var n int
@@ -561,7 +569,7 @@ func adding_new_pod__pd_stateAware(cluster *Cluster, pod *Pod,
 		}
 
 		// Sort by Assurance asc
-		sortByPrimary_f64(assurances, scores, references, clusterstates, func(a, b float64) bool {
+		sortByPrimary_Assurance(assurances, scores, references, clusterstates, func(a, b float32) bool {
 			return a < b
 		}, true)
 		_, edge_solutions = DP_findEligibleSolution(n, assurances, theta, _DP_Xkeep)
@@ -606,7 +614,7 @@ func adding_new_pod__pd_stateAware(cluster *Cluster, pod *Pod,
 		}
 
 		// Sort by Assurance asc
-		sortByPrimary_f64(assurances, scores, references, clusterstates, func(a, b float64) bool {
+		sortByPrimary_Assurance(assurances, scores, references, clusterstates, func(a, b float32) bool {
 			return a < b
 		}, true)
 		_, edge_solutions = DP_findEligibleSolution(n, assurances, theta, _DP_Xkeep)
@@ -634,7 +642,7 @@ func adding_new_pod__pd_stateAgnostic(cluster *Cluster, pod *Pod,
 
 	// It is my responsability to create the vectors for assurances, scores and references
 	var scores []float32
-	var assurances []float64 // Probabilities
+	var assurances []float32 // Probabilities
 	var references []*WorkerNode
 	var clusterstates []ClusterNodeState
 	var n int
@@ -700,7 +708,7 @@ func adding_new_pod__pd_stateAgnostic(cluster *Cluster, pod *Pod,
 
 	n = len(scores)
 	// Sort by Assurance asc
-	sortByPrimary_f64(assurances, scores, references, clusterstates, func(a, b float64) bool {
+	sortByPrimary_Assurance(assurances, scores, references, clusterstates, func(a, b float32) bool {
 		return a < b
 	}, true)
 	_, edge_solutions = DP_findEligibleSolution(n, assurances, theta, _DP_Xkeep)
@@ -719,18 +727,18 @@ func adding_new_pod__pd_stateAgnostic(cluster *Cluster, pod *Pod,
 }
 
 // findEligibleSolution implements the 3D DP approach in Go
-func DP_findEligibleSolution(n int, probabilities []float64, theta float64, overkillSize int) ([][][]float64, map[int][]int) {
+func DP_findEligibleSolution(n int, probabilities []float32, theta float32, overkillSize int) ([][][]float32, map[int][]int) {
 	// Initialize a 3D DP table
 	var maxJ int = _MAX_REPLICAS
 	if _MAX_REPLICAS < 0 || _MAX_REPLICAS >= n {
 		maxJ = n
 	}
 
-	dp := make([][][]float64, n+1)
+	dp := make([][][]float32, n+1)
 	for i := range dp {
-		dp[i] = make([][]float64, maxJ+1) //n+1)
+		dp[i] = make([][]float32, maxJ+1) //n+1)
 		for j := range dp[i] {
-			dp[i][j] = make([]float64, maxJ+1) //n+1)
+			dp[i][j] = make([]float32, maxJ+1) //n+1)
 		}
 	}
 	dp[0][0][0] = 1.0 // Base case
@@ -759,7 +767,7 @@ func DP_findEligibleSolution(n int, probabilities []float64, theta float64, over
 			// Evaluate Solution
 			if j > 0 {
 				if firstEligibleSize < 1 || j < firstEligibleSize {
-					probIfInSolution := 0.0
+					var probIfInSolution float32 = 0.0
 					for k := (j/2 + 1); k <= j; k++ {
 						probIfInSolution += dp[i][j][k]
 					}
@@ -793,7 +801,7 @@ func DP_findEligibleSolution(n int, probabilities []float64, theta float64, over
 }
 
 // Concats permutateMinSolution and AllGreaterTuples
-func _DP_search_neigh_solutions(n int, probabilities []float64, theta float64, firstEligibles map[int][]int, neighSearch int) [][]int {
+func _DP_search_neigh_solutions(n int, probabilities []float32, theta float32, firstEligibles map[int][]int, neighSearch int) [][]int {
 	// Step 2: Generate all eligible solutions and their neighbors
 	var allEligibles [][]int
 
@@ -812,7 +820,7 @@ func _DP_search_neigh_solutions(n int, probabilities []float64, theta float64, f
 	return allEligibles
 }
 
-func _DP_permutateMinSolution(n int, probabilities []float64, theta float64, firstEligible []int, neighSearch int) [][]int {
+func _DP_permutateMinSolution(n int, probabilities []float32, theta float32, firstEligible []int, neighSearch int) [][]int {
 	eligiblesNeigh := [][]int{firstEligible}
 	size := len(firstEligible)
 
@@ -903,8 +911,8 @@ func _DP_allGreaterTuples(inputEligibles [][]int, n int) [][]int {
 	return results
 }
 
-func _DP_is_tuple_eligible(probabilities []float64, theta float64, tuple_sol []int) bool {
-	p_tuple := []float64{}
+func _DP_is_tuple_eligible(probabilities []float32, theta float32, tuple_sol []int) bool {
+	p_tuple := []float32{}
 	for _, p_idx := range tuple_sol {
 		p_tuple = append(p_tuple, probabilities[p_idx])
 	}
@@ -953,9 +961,9 @@ func adding_new_pod__k8s(cluster *Cluster, pod *Pod,
 	var id int = -1
 	var score float32 = -1.
 
-	var probabilities = []float64{}
-	var prob_atleast_half float64 = -1. //was 0.
-	var theta = float64(pod.Criticality)
+	var probabilities = []float32{}
+	var prob_atleast_half float32 = -1. //was 0.
+	var theta = float32(pod.Criticality)
 
 	// Find best among ALL nodes
 	var allNodes_map = cluster.All_map()
@@ -987,7 +995,7 @@ func adding_new_pod__k8s(cluster *Cluster, pod *Pod,
 		probabilities = append(probabilities, node.Assurance)
 		prob_atleast_half = compute_probability_atLeastHalf(probabilities)
 		if _Log >= Log_Scores {
-			log.Printf("[K8s]: with wn %d -> Prob h+: %.12f (theta = %.12f) \n", id, prob_atleast_half, theta)
+			log.Printf("[K8s]: with wn %d -> Prob h+: %.5f (theta = %.5f) \n", id, prob_atleast_half, theta)
 		}
 	}
 

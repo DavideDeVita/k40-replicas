@@ -56,7 +56,7 @@ func _computationPower_ratio(node *WorkerNode, pod *Pod) float32 {
 }
 
 func _sigma_assurance(node *WorkerNode, pod *Pod) float32 {
-	return float32(1. / (1. + power_f64((node.Assurance)/(1-node.Assurance), 1.5)))
+	return float32(1. / (1. + power_f32((node.Assurance)/(1-node.Assurance), 1.5)))
 }
 
 func _sigma_assurance_wasteless(node *WorkerNode, pod *Pod) float32 {
@@ -89,6 +89,15 @@ func _log10_assurance_wasteless(node *WorkerNode, pod *Pod) float32 {
 		return 0.
 	}
 	return _log10_assurance(node, pod)
+}
+
+func _expFrac_assurance_wasteless(node *WorkerNode, pod *Pod) float32 {
+	if node.Assurance >= pod.Criticality.value() {
+		return 0.
+	}
+	diff := pod.Criticality.value()-node.Assurance
+	var steep float32 = 3.33
+	return (1-exppower_f32(-steep*diff))/1-exppower_f32(-steep)
 }
 
 func _rt_waste(node *WorkerNode, pod *Pod) float32 {
