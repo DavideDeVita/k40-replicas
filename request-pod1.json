@@ -59,8 +59,8 @@
   },
 
   "deployment": {
-    "pod": {
-      "id": "pod-01",
+    "job": {
+      "id": "open5gs-upf",
       "real_time": true,
       "criticality": 0.8,
       "cpu": { "requested": "500m", "limit": "2000m" },
@@ -84,7 +84,10 @@
         "dp_solutionOversizeSearch" : 1,
         "dp_neighborSpan" : 1,
         "dp_energyCostWakeupMultiplier" : 1.5,
-        "dp_scoreAggregationMode" : "SquaredSum"
+        "dp_scoreAggregationMode" : "SquaredSum",
+        "overcommit_ReourceDangerRatio" : 0.9,
+        "energyCostMode" : "deltaLinear",
+        "energyCostIdleMinRatio" : 0.2
       }
     }
   }
