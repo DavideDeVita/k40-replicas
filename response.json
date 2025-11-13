@@ -1,0 +1,35 @@
+{
+  "accepted": true,
+  "replicas": 1,
+  "probability": 0.95,
+  "deploy_on": [
+    {
+      "id": "worker-large-02",
+      "cpu": {
+        "capacity": "16000m",
+        "requested": "4500m",
+        "limit": "10000m"
+      },
+      "memory": {
+        "capacity": "16Gi",
+        "requested": "4Gi",
+        "limit": "8Gi"
+      },
+      "storage": {
+        "capacity": "100Gi",
+        "requested": "50Gi",
+        "limit": "93Gi"
+      },
+      "score": 0.334375,
+      "explain": {
+        "assuranceWasteless": 0,
+        "energyCost": 0.25,
+        "limitOvercommitPenalty": 0,
+        "resourcesFit": 0.084375,
+        "rtWasteless": 0
+      }
+    }
+  ],
+  "explanation": "Pod open5gs-upf accepted: Criticality constraint met ( 0.950 / 0.800) with 1 replicas",
+  "energy_delta": 0
+}
