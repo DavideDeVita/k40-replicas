@@ -7,29 +7,29 @@
       "id": "worker-large-02",
       "cpu": {
         "capacity": "16000m",
-        "requested": "4500m",
-        "limit": "10000m"
+        "requested": "9000m",
+        "limit": "14000m"
       },
       "memory": {
         "capacity": "16Gi",
-        "requested": "4Gi",
-        "limit": "8Gi"
+        "requested": "8Gi",
+        "limit": "11Gi"
       },
       "storage": {
         "capacity": "100Gi",
-        "requested": "50Gi",
-        "limit": "93Gi"
+        "requested": "90Gi",
+        "limit": "143Gi"
       },
-      "score": 0.334375,
+      "score": 0.3759638,
       "explain": {
         "assuranceWasteless": 0,
         "energyCost": 0.25,
-        "limitOvercommitPenalty": 0,
+        "limitOvercommitPenalty": 0.041588824,
         "resourcesFit": 0.084375,
         "rtWasteless": 0
       }
     }
   ],
-  "explanation": "Pod open5gs-upf accepted: Criticality constraint met ( 0.950 / 0.800) with 1 replicas",
+  "explanation": "Job open5gs-upf accepted:\n\tCriticality constraint met (0.950% / 0.800%)\n\tSolution found with 1 replicas\n\tCluster energy cost (absolute) changed from 600.00 to 600.00\n",
   "energy_delta": 0
 }

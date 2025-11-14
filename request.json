@@ -2,10 +2,37 @@
   "cluster": {
     "worker_nodes": [
       {
+        "id": "worker-small-01",
+        "cpu": { "capacity": "2", "requested": "0", "limit": "0" },
+        "memory": { "capacity": "4Gi", "requested": "0", "limit": "0" },
+        "storage": { "capacity": "40gi", "requested": "0", "limit": "0" },
+        "real_time": false,
+        "energy_cost": 30,
+        "assurance": 0.60
+      },
+      {
+        "id": "worker-small-02",
+        "cpu": { "capacity": "2", "requested": "500m", "limit": "1" },
+        "memory": { "capacity": "4Gi", "requested": "1Gi", "limit": "1500Mi" },
+        "storage": { "capacity": "40gi", "requested": "5Gi", "limit": "7500Mi" },
+        "real_time": false,
+        "energy_cost": 30,
+        "assurance": 0.60
+      },
+      {
         "id": "worker-medium-01",
         "cpu": { "capacity": "8", "requested": "0", "limit": "0" },
         "memory": { "capacity": "8Gi", "requested": "0", "limit": "0" },
         "storage": { "capacity": "80gi", "requested": "0", "limit": "0" },
+        "real_time": true,
+        "energy_cost": 90,
+        "assurance": 0.80
+      },
+      {
+        "id": "worker-medium-02",
+        "cpu": { "capacity": "8", "requested": "3", "limit": "5" },
+        "memory": { "capacity": "8Gi", "requested": "3Gi", "limit": "5Gi" },
+        "storage": { "capacity": "80gi", "requested": "40Gi", "limit": "50Gi" },
         "real_time": true,
         "energy_cost": 90,
         "assurance": 0.80
@@ -17,6 +44,17 @@
         "storage": { "capacity": "100gi", "requested": "0", "limit": "0" },
         "real_time": true,
         "energy_cost": 180,
+        "energy_cost_idle": 30,
+        "assurance": 0.95
+      },
+      {
+        "id": "worker-large-02",
+        "cpu": { "capacity": "16", "requested": "4", "limit": "8" },
+        "memory": { "capacity": "16Gi", "requested": "2Gi", "limit": "4Gi" },
+        "storage": { "capacity": "100gi", "requested": "30Gi", "limit": "73Gi" },
+        "real_time": true,
+        "energy_cost": 180,
+        "energy_cost_idle": 30,
         "assurance": 0.95
       }
     ]
@@ -50,8 +88,7 @@
         "dp_energyCostWakeupMultiplier" : 1.5,
         "dp_scoreAggregationMode" : "SquaredSum",
         "overcommit_ReourceDangerRatio" : 0.9,
-        "energyCostMode" : "deltaLinear",
-        "energyCostIdleMinRatio" : 0.2
+        "energyCostMode" : "deltalinear"
       }
     }
   }
