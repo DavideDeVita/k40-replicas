@@ -1,35 +1,87 @@
 {
   "accepted": true,
-  "replicas": 1,
-  "probability": 0.95,
+  "replicas": 3,
+  "probability": 0.944,
   "deploy_on": [
+    {
+      "id": "worker-medium-02",
+      "cpu": {
+        "capacity": "8000m",
+        "requested": "5000m",
+        "limit": "8000m"
+      },
+      "memory": {
+        "capacity": "8Gi",
+        "requested": "5Gi",
+        "limit": "9Gi"
+      },
+      "storage": {
+        "capacity": "80Gi",
+        "requested": "80Gi",
+        "limit": "90Gi"
+      },
+      "score": 0.274342,
+      "explain": {
+        "assuranceWasteless": 0.010262435,
+        "energyCost": 0.005859375,
+        "limitOvercommitPenalty": 0.10197019,
+        "resourcesFit": 0.15625,
+        "rtWasteless": 0
+      }
+    },
+    {
+      "id": "worker-medium-01",
+      "cpu": {
+        "capacity": "8000m",
+        "requested": "2000m",
+        "limit": "3000m"
+      },
+      "memory": {
+        "capacity": "8Gi",
+        "requested": "2Gi",
+        "limit": "4Gi"
+      },
+      "storage": {
+        "capacity": "80Gi",
+        "requested": "40Gi",
+        "limit": "40Gi"
+      },
+      "score": 0.024182715,
+      "explain": {
+        "assuranceWasteless": 0.010262435,
+        "energyCost": 0.005859375,
+        "limitOvercommitPenalty": 0,
+        "resourcesFit": 0,
+        "rtWasteless": 0
+      }
+    },
     {
       "id": "worker-large-02",
       "cpu": {
         "capacity": "16000m",
-        "requested": "9000m",
-        "limit": "14000m"
+        "requested": "6000m",
+        "limit": "11000m"
       },
       "memory": {
         "capacity": "16Gi",
-        "requested": "8Gi",
-        "limit": "11Gi"
+        "requested": "4Gi",
+        "limit": "8Gi"
       },
       "storage": {
         "capacity": "100Gi",
-        "requested": "90Gi",
-        "limit": "143Gi"
+        "requested": "70Gi",
+        "limit": "113Gi"
       },
-      "score": 0.13885444,
+      "score": 0.12840462,
       "explain": {
-        "assuranceWasteless": 0,
-        "energyCost": 0.012890625,
-        "limitOvercommitPenalty": 0.041588824,
+        "assuranceWasteless": 0.0001348519,
+        "energyCost": 0.005859375,
+        "limitOvercommitPenalty": 0.038035393,
         "resourcesFit": 0.084375,
         "rtWasteless": 0
       }
     }
   ],
-  "explanation": "Job open5gs-upf accepted:\n\tCriticality constraint met (0.950% / 0.800%)\n\tSolution found with 1 replicas\n\tCluster energy cost (deltalinear) unchanged: 753.75\n",  
-  "energy_delta": 61.875
+  "explanation": "Job open5gs-upf accepted:\n\tCriticality constraint met (94.40% / 96.00%)\n\tSolution found with 3 replicas\n\tCluster energy cost (deltalinear) changed from 307.50 to 391.88\n",
+  "energy_delta": 84.375
 }

@@ -20,16 +20,16 @@
         "requested": "90Gi",
         "limit": "143Gi"
       },
-      "score": 0.3759638,
+      "score": 0.15174508,
       "explain": {
         "assuranceWasteless": 0,
-        "energyCost": 0.25,
+        "energyCost": 0.02578125,
         "limitOvercommitPenalty": 0.041588824,
         "resourcesFit": 0.084375,
         "rtWasteless": 0
       }
     }
   ],
-  "explanation": "Job open5gs-upf accepted:\n\tCriticality constraint met (0.950% / 0.800%)\n\tSolution found with 1 replicas\n\tCluster energy cost (absolute) changed from 600.00 to 600.00\n",
-  "energy_delta": 0
+  "explanation": "1-replica placement suggested to grant an 80% affidability.",
+  "energy_delta": 61.875
 }
