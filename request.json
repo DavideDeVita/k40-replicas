@@ -8,7 +8,7 @@
         "storage": { "capacity": "40gi", "requested": "0", "limit": "0" },
         "real_time": false,
         "energy_cost": 30,
-        "assurance": 0.60
+        "assurance": 0.6
       },
       {
         "id": "worker-small-02",
@@ -17,7 +17,7 @@
         "storage": { "capacity": "40gi", "requested": "5Gi", "limit": "7500Mi" },
         "real_time": false,
         "energy_cost": 30,
-        "assurance": 0.60
+        "assurance": 0.6
       },
       {
         "id": "worker-medium-01",
@@ -45,17 +45,17 @@
         "real_time": true,
         "energy_cost": 180,
         "energy_cost_idle": 30,
-        "assurance": 0.95
+        "assurance": 0.9
       },
       {
         "id": "worker-large-02",
-        "cpu": { "capacity": "16", "requested": "4", "limit": "8" },
-        "memory": { "capacity": "16Gi", "requested": "2Gi", "limit": "4Gi" },
-        "storage": { "capacity": "100gi", "requested": "30Gi", "limit": "73Gi" },
+        "cpu": { "capacity": "16", "requested": "7", "limit": "11" },
+        "memory": { "capacity": "16Gi", "requested": "6Gi", "limit": "11Gi" },
+        "storage": { "capacity": "100gi", "requested": "40Gi", "limit": "70Gi" },
         "real_time": true,
         "energy_cost": 180,
         "energy_cost_idle": 30,
-        "assurance": 0.95
+        "assurance": 0.9
       }
     ]
   },
@@ -65,7 +65,7 @@
       "id": "open5gs-upf",
       "real_time": true,
       "criticality": 0.95,
-      "cpu": { "requested": "2", "limit": "3" },
+      "cpu": { "requested": "2", "limit": "4" },
       "memory": { "requested": "2Gi", "limit": "4Gi" },
       "storage": { "requested": "40Gi", "limit": "40Gi" }
     },
