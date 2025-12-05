@@ -62,7 +62,7 @@
 
   "deployment": {
     "job": {
-      "id": "open5gs-upf",
+      "id": "open5gs-test",
       "real_time": true,
       "criticality": 0.95,
       "cpu": { "requested": "2", "limit": "4" },

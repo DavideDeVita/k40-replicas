@@ -7,7 +7,7 @@
         "memory": { "capacity": "4Gi", "requested": "0", "limit": "0" },
         "storage": { "capacity": "40gi", "requested": "0", "limit": "0" },
         "real_time": false,
-        "energy_cost": 30,
+        "energy_cost": 25,
         "assurance": 0.60
       },
       {
@@ -16,7 +16,25 @@
         "memory": { "capacity": "4Gi", "requested": "1Gi", "limit": "1500Mi" },
         "storage": { "capacity": "40gi", "requested": "5Gi", "limit": "7500Mi" },
         "real_time": false,
-        "energy_cost": 30,
+        "energy_cost": 25,
+        "assurance": 0.60
+      },
+      {
+        "id": "worker-small-03",
+        "cpu": { "capacity": "2", "requested": "0", "limit": "0" },
+        "memory": { "capacity": "4Gi", "requested": "0", "limit": "0" },
+        "storage": { "capacity": "40gi", "requested": "0", "limit": "0" },
+        "real_time": false,
+        "energy_cost": 25,
+        "assurance": 0.60
+      },
+      {
+        "id": "worker-small-04",
+        "cpu": { "capacity": "2", "requested": "500m", "limit": "1" },
+        "memory": { "capacity": "4Gi", "requested": "1Gi", "limit": "1500Mi" },
+        "storage": { "capacity": "40gi", "requested": "5Gi", "limit": "7500Mi" },
+        "real_time": false,
+        "energy_cost": 25,
         "assurance": 0.60
       },
       {
@@ -25,8 +43,9 @@
         "memory": { "capacity": "8Gi", "requested": "0", "limit": "0" },
         "storage": { "capacity": "80gi", "requested": "0", "limit": "0" },
         "real_time": true,
-        "energy_cost": 90,
-        "assurance": 0.80
+        "energy_cost": 120,
+        "energy_cost_idle": 15,
+        "assurance": 0.75
       },
       {
         "id": "worker-medium-02",
@@ -34,8 +53,9 @@
         "memory": { "capacity": "8Gi", "requested": "3Gi", "limit": "5Gi" },
         "storage": { "capacity": "80gi", "requested": "40Gi", "limit": "50Gi" },
         "real_time": true,
-        "energy_cost": 90,
-        "assurance": 0.80
+        "energy_cost": 120,
+        "energy_cost_idle": 15,
+        "assurance": 0.75
       },
       {
         "id": "worker-medium-03",
@@ -43,8 +63,19 @@
         "memory": { "capacity": "8Gi", "requested": "3Gi", "limit": "5Gi" },
         "storage": { "capacity": "80gi", "requested": "40Gi", "limit": "50Gi" },
         "real_time": true,
-        "energy_cost": 90,
-        "assurance": 0.80
+        "energy_cost": 120,
+        "energy_cost_idle": 15,
+        "assurance": 0.75
+      },
+      {
+        "id": "worker-medium-04",
+        "cpu": { "capacity": "8", "requested": "3", "limit": "5" },
+        "memory": { "capacity": "8Gi", "requested": "3Gi", "limit": "5Gi" },
+        "storage": { "capacity": "80gi", "requested": "40Gi", "limit": "50Gi" },
+        "real_time": true,
+        "energy_cost": 120,
+        "energy_cost_idle": 15,
+        "assurance": 0.75
       },
       {
         "id": "worker-large-01",
@@ -52,9 +83,9 @@
         "memory": { "capacity": "16Gi", "requested": "0", "limit": "0" },
         "storage": { "capacity": "100gi", "requested": "0", "limit": "0" },
         "real_time": true,
-        "energy_cost": 180,
+        "energy_cost": 300,
         "energy_cost_idle": 30,
-        "assurance": 0.95
+        "assurance": 0.9
       },
       {
         "id": "worker-large-02",
@@ -62,91 +93,42 @@
         "memory": { "capacity": "16Gi", "requested": "2Gi", "limit": "4Gi" },
         "storage": { "capacity": "100gi", "requested": "30Gi", "limit": "73Gi" },
         "real_time": true,
-        "energy_cost": 180,
+        "energy_cost": 300,
         "energy_cost_idle": 30,
-        "assurance": 0.95
-      },
-      {
-        "id": "worker-large-03",
-        "cpu": { "capacity": "16", "requested": "4", "limit": "8" },
-        "memory": { "capacity": "16Gi", "requested": "2Gi", "limit": "4Gi" },
-        "storage": { "capacity": "100gi", "requested": "30Gi", "limit": "73Gi" },
-        "real_time": true,
-        "energy_cost": 180,
-        "energy_cost_idle": 30,
-        "assurance": 0.95
-      },
-      {
-        "id": "worker-large-04",
-        "cpu": { "capacity": "16", "requested": "4", "limit": "8" },
-        "memory": { "capacity": "16Gi", "requested": "2Gi", "limit": "4Gi" },
-        "storage": { "capacity": "100gi", "requested": "30Gi", "limit": "73Gi" },
-        "real_time": true,
-        "energy_cost": 180,
-        "energy_cost_idle": 30,
-        "assurance": 0.95
-      },
-      {
-        "id": "worker-large-05",
-        "cpu": { "capacity": "16", "requested": "4", "limit": "8" },
-        "memory": { "capacity": "16Gi", "requested": "2Gi", "limit": "4Gi" },
-        "storage": { "capacity": "100gi", "requested": "30Gi", "limit": "73Gi" },
-        "real_time": true,
-        "energy_cost": 180,
-        "energy_cost_idle": 30,
-        "assurance": 0.95
-      },
-      {
-        "id": "worker-large-06",
-        "cpu": { "capacity": "16", "requested": "4", "limit": "8" },
-        "memory": { "capacity": "16Gi", "requested": "2Gi", "limit": "4Gi" },
-        "storage": { "capacity": "100gi", "requested": "30Gi", "limit": "73Gi" },
-        "real_time": true,
-        "energy_cost": 180,
-        "energy_cost_idle": 30,
-        "assurance": 0.95
-      },
-      {
-        "id": "worker-large-07",
-        "cpu": { "capacity": "16", "requested": "4", "limit": "8" },
-        "memory": { "capacity": "16Gi", "requested": "2Gi", "limit": "4Gi" },
-        "storage": { "capacity": "100gi", "requested": "30Gi", "limit": "73Gi" },
-        "real_time": true,
-        "energy_cost": 180,
-        "energy_cost_idle": 30,
-        "assurance": 0.95
+        "assurance": 0.9
       }
     ]
   },
 
   "deployment": {
     "job": {
-      "id": "open5gs-upf",
-      "real_time": true,
-      "criticality": 0.95,
-      "cpu": { "requested": "2", "limit": "3" },
-      "memory": { "requested": "2Gi", "limit": "4Gi" },
-      "storage": { "requested": "40Gi", "limit": "40Gi" }
+      "id": "dummy",
+      "real_time": false,
+      "criticality": 0.81,
+      "cpu": { "requested": "500m", "limit": "1" },
+      "memory": { "requested": "1Gi", "limit": "2Gi" },
+      "storage": { "requested": "5Gi", "limit": "20Gi" }
     },
 
     "algorithm": {
       "type": "DP_StateAware",
-      "resourceFit": "LeastAllocated",
+      "resourceFit": "RequestedToCapacityRatio",
       "weights": {
         "resourceFit": 3,
-        "energyCost": 2,
-        "assuranceWasteless": 1,
-        "rtWasteless": 1,
+        "energyCost": 3,
+        "assuranceWasteless": 2,
+        "rtWasteless": 2,
         "limitOvercommitPenalty" : 1
       },
       "hyperparams": {
-        "maxReplicas": 3,
+        "maxReplicas": 5,
         "dp_maxNeighbors": 10,
-        "dp_solutionOversizeSearch" : 1,
-        "dp_neighborSpan" : 1,
+        "dp_solutionOversizeSearch" : 3,
+        "dp_neighborSpan" : 2,
         "dp_energyCostWakeupMultiplier" : 1.5,
+        "dp_energyCostWakeupConst" : 0.1,
         "dp_scoreAggregationMode" : "SquaredSum",
-        "overcommit_ReourceDangerRatio" : 0.9,
+        "overcommit_ReourceDangerRatio" : 0.85,
         "energyCostMode" : "deltalinear",
         "verbose" : true
       }
