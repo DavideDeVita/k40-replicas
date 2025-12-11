@@ -1,5 +1,2 @@
 #Ignoring all sub directories (they contain data)
-*/
-*.csv
-*.log
 

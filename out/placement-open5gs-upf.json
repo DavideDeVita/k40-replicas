@@ -1,0 +1,88 @@
+{
+  "pod_id": "open5gs-upf",
+  "accepted": true,
+  "replicas": 3,
+  "probability": 0.954,
+  "deploy_on": [
+    {
+      "id": "worker-large-01",
+      "cpu": {
+        "capacity": "16000m",
+        "requested": "2000m",
+        "limit": "4000m"
+      },
+      "memory": {
+        "capacity": "16Gi",
+        "requested": "2Gi",
+        "limit": "4Gi"
+      },
+      "storage": {
+        "capacity": "100Gi",
+        "requested": "40Gi",
+        "limit": "40Gi"
+      },
+      "score": 0.0047672503,
+      "explain": {
+        "assuranceWasteless": 0.0016156666,
+        "energyCost": 0.0015625,
+        "limitOvercommitPenalty": 0,
+        "resourcesFit": 0,
+        "rtWasteless": 0
+      }
+    },
+    {
+      "id": "worker-large-02",
+      "cpu": {
+        "capacity": "16000m",
+        "requested": "9000m",
+        "limit": "15000m"
+      },
+      "memory": {
+        "capacity": "16Gi",
+        "requested": "8Gi",
+        "limit": "15Gi"
+      },
+      "storage": {
+        "capacity": "100Gi",
+        "requested": "80Gi",
+        "limit": "110Gi"
+      },
+      "score": 0.19912997,
+      "explain": {
+        "assuranceWasteless": 0.0016156666,
+        "energyCost": 0.0140625,
+        "limitOvercommitPenalty": 0.031889305,
+        "resourcesFit": 0.1515625,
+        "rtWasteless": 0
+      }
+    },
+    {
+      "id": "worker-medium-01",
+      "cpu": {
+        "capacity": "8000m",
+        "requested": "2000m",
+        "limit": "4000m"
+      },
+      "memory": {
+        "capacity": "8Gi",
+        "requested": "2Gi",
+        "limit": "4Gi"
+      },
+      "storage": {
+        "capacity": "80Gi",
+        "requested": "40Gi",
+        "limit": "40Gi"
+      },
+      "score": 0.0351737,
+      "explain": {
+        "assuranceWasteless": 0.009386635,
+        "energyCost": 0.0140625,
+        "limitOvercommitPenalty": 0,
+        "resourcesFit": 0,
+        "rtWasteless": 0
+      }
+    }
+  ],
+  "explanation": "3-replicas placement suggested to grant an 95.00% affidability.",
+  "energy_delta": 71.25
+}

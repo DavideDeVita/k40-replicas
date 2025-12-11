@@ -1,0 +1,36 @@
+{
+  "pod_id": "dummy",
+  "accepted": true,
+  "replicas": 1,
+  "probability": 0.75,
+  "deploy_on": [
+    {
+      "id": "worker-medium-03",
+      "cpu": {
+        "capacity": "8000m",
+        "requested": "3500m",
+        "limit": "6000m"
+      },
+      "memory": {
+        "capacity": "8Gi",
+        "requested": "4Gi",
+        "limit": "7Gi"
+      },
+      "storage": {
+        "capacity": "80Gi",
+        "requested": "45Gi",
+        "limit": "70Gi"
+      },
+      "score": 0.33441526,
+      "explain": {
+        "assuranceWasteless": 0,
+        "energyCost": 0.0026001541,
+        "limitOvercommitPenalty": 0.01363328,
+        "resourcesFit": 0.13636364,
+        "rtWasteless": 0.18181819
+      }
+    }
+  ],
+  "explanation": "Job dummy accepted:\n\tCriticality constraint met (75.00% / 61.00%)\n\tSolution found with 1 replica\n\tCluster energy cost (deltalinear) changed from 300.00 to 311.25\n",
+  "energy_delta": 11.25
+}
