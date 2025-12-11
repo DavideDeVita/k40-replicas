@@ -89,9 +89,9 @@
       },
       {
         "id": "worker-large-02",
-        "cpu": { "capacity": "16", "requested": "4", "limit": "8" },
-        "memory": { "capacity": "16Gi", "requested": "2Gi", "limit": "4Gi" },
-        "storage": { "capacity": "100gi", "requested": "30Gi", "limit": "73Gi" },
+        "cpu": { "capacity": "16", "requested": "2", "limit": "4" },
+        "memory": { "capacity": "16Gi", "requested": "2Gi", "limit": "3Gi" },
+        "storage": { "capacity": "100gi", "requested": "20Gi", "limit": "35Gi" },
         "real_time": true,
         "energy_cost": 300,
         "energy_cost_idle": 30,
@@ -104,7 +104,7 @@
     "job": {
       "id": "dummy",
       "real_time": false,
-      "criticality": 0.81,
+      "criticality": 0.61,
       "cpu": { "requested": "500m", "limit": "1" },
       "memory": { "requested": "1Gi", "limit": "2Gi" },
       "storage": { "requested": "5Gi", "limit": "20Gi" }
