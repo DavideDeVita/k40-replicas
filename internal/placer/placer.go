@@ -12,7 +12,7 @@ import (
 // Core entrypoint for the placement logic
 // -----------------------------------------------------------------------------
 
-func Place(req api.PlacementRequest) (*api.PlacementResponse, error) {
+func Place(req api.PlacementRequest) (*api.PlacementResult, error) {
 	// 1. Build the cluster
 	cluster := core.Cluster{
 		Active: make(map[int]*core.WorkerNode),
@@ -51,22 +51,24 @@ func Place(req api.PlacementRequest) (*api.PlacementResponse, error) {
 
 	cluster.ComputeEnergyConstants(hyperparams) //Sets MaxEnergyCost and CurrEnergyCost
 
+	var outputsAmount int = req.Deployment.Algorithm.OutputsAmount
+
 	// 4. Dispatch to the requested algorithm
-	var solution core.Solution
+	var solutions []core.Solution
 	switch requiredAlgo {
 	case "greedy":
-		solution = core.AddingNewPodGreedy(&cluster, &pod, scoringFunc, explainScoringFunc, hyperparams)
+		solutions = core.AddingNewPodGreedy(&cluster, &pod, scoringFunc, explainScoringFunc, outputsAmount, hyperparams)
 	case "dpstateaware":
-		solution = core.AddingNewPodDPStateAware(&cluster, &pod, scoringFunc, explainScoringFunc, hyperparams)
+		solutions = core.AddingNewPodDPStateAware(&cluster, &pod, scoringFunc, explainScoringFunc, outputsAmount, hyperparams)
 	case "dpstateagnostic":
-		solution = core.AddingNewPodDPStateAgnostic(&cluster, &pod, scoringFunc, explainScoringFunc, hyperparams)
+		solutions = core.AddingNewPodDPStateAgnostic(&cluster, &pod, scoringFunc, explainScoringFunc, outputsAmount, hyperparams)
 	default:
 		fmt.Printf("[WARNING] Unrecgnized Algorithm type: %s. Using K8s\n", req.Deployment.Algorithm.Type)
-		solution = core.AddingNewPodK8s(&cluster, &pod, scoringFunc, explainScoringFunc, hyperparams)
+		solutions = core.AddingNewPodK8s(&cluster, &pod, scoringFunc, explainScoringFunc, outputsAmount, hyperparams)
 		// return nil, fmt.Errorf("unknown algorithm type: %s", req.Deployment.Algorithm.Type)
 	}
 
 	// 5. Return the solution (to be serialized as response)
-	resp := api.BuildResponseFromSolution(solution)
+	resp := api.BuildResponseFromSolutions(pod.ID, solutions)
 	return &resp, nil
 }

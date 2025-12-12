@@ -49,8 +49,9 @@ func AddingNewPodGreedy(cluster *Cluster,
 	pod *Pod,
 	scoringFunction func(*WorkerNode, *Pod) float32,
 	explainScoringFunc func(*WorkerNode, *Pod) map[string]float32,
+	outputsAmount int,
 	hyperparams AlgorithmHyperparams,
-) Solution {
+) []Solution {
 	var solution Solution = InitSolution(pod)
 	var exclude_ids cmn.Set = make(cmn.Set)
 	var computed_scores = map[int]float32{}
@@ -108,7 +109,7 @@ func AddingNewPodGreedy(cluster *Cluster,
 		solution.WrapUpSolution(cluster, hyperparams)
 	}
 
-	return solution
+	return []Solution{solution}
 }
 
 // AddingNewPodDPStateAware implementa l’approccio di Programmazione Dinamica considerando prima i nodi attivi.
@@ -138,8 +139,9 @@ func AddingNewPodDPStateAware(cluster *Cluster,
 	pod *Pod,
 	scoringFunction func(*WorkerNode, *Pod) float32,
 	explainScoringFunc func(*WorkerNode, *Pod) map[string]float32,
+	outputsAmount int,
 	hyperparams AlgorithmHyperparams,
-) Solution {
+) []Solution {
 
 	var solution Solution = InitSolution(pod)
 	var edge_solutions map[int][]int
@@ -223,7 +225,7 @@ func AddingNewPodDPStateAware(cluster *Cluster,
 		/*If still no solution, reject*/
 		if len(edge_solutions) == 0 {
 			solution.Reject("Unable to find eligible solutions")
-			return solution
+			return []Solution{solution}
 		}
 	}
 
@@ -240,15 +242,16 @@ func AddingNewPodDPStateAware(cluster *Cluster,
 
 	/* Fase 3: Scegli la migliore e crea la struttura Solution */
 	// fmt.Printf("\n\n[DEBUG] probabilities: %v\n\n", assurances)
-	selectedSolution, _ := _DP_pick_best_solution(all_eligibles, scores, hyperparams.DP_ScoreAggregationMode)
-	_update_solution(&solution, selectedSolution, references, assurances, scores, explainScoringFunc)
-
-	//Wrap it up
-	if solution.Accepted {
+	topSolutions, _ := _DP_pick_top_solutions(all_eligibles, scores, outputsAmount, hyperparams.DP_ScoreAggregationMode)
+	var retSolutions []Solution = []Solution{}
+	
+	for _, tupSolution := range topSolutions{
+		solution = _DP_tuple_to_solution(pod, tupSolution, references, assurances, scores, explainScoringFunc)
 		solution.WrapUpSolution(cluster, hyperparams)
+		retSolutions = append(retSolutions, solution)
 	}
 
-	return solution
+	return retSolutions
 }
 
 // AddingNewPodDPStateAgnostic implementa l’approccio DP analizzando da subito tutti i nodi (Active + Idle).
@@ -267,8 +270,9 @@ func AddingNewPodDPStateAgnostic(cluster *Cluster,
 	pod *Pod,
 	scoringFunction func(*WorkerNode, *Pod) float32,
 	explainScoringFunc func(*WorkerNode, *Pod) map[string]float32,
+	outputsAmount int,
 	hyperparams AlgorithmHyperparams,
-) Solution {
+) []Solution {
 
 	var solution Solution = InitSolution(pod)
 	var edge_solutions map[int][]int
@@ -334,21 +338,25 @@ func AddingNewPodDPStateAgnostic(cluster *Cluster,
 	/*If still no solution, reject*/
 	if len(edge_solutions) == 0 {
 		solution.Reject("Unable to find eligible solutions")
-		return solution
+			return []Solution{solution}
 	}
 
 	//One or more solution found
 	// fmt.Printf("\n\n[DEBUG] probabilities: %v\n\n", assurances)
 	all_eligibles := _DP_search_neigh_solutions(n, assurances, theta, edge_solutions, hyperparams.DP_NeighborSpan, hyperparams.DP_MaxNeighbors)
-	selectedSolution, _ := _DP_pick_best_solution(all_eligibles, scores, hyperparams.DP_ScoreAggregationMode)
-	_update_solution(&solution, selectedSolution, references, assurances, scores, explainScoringFunc)
-
-	//Wrap it up
-	if solution.Accepted {
+	
+	/* Fase 3: Scegli la migliore e crea la struttura Solution */
+	// fmt.Printf("\n\n[DEBUG] probabilities: %v\n\n", assurances)
+	topSolutions, _ := _DP_pick_top_solutions(all_eligibles, scores, outputsAmount, hyperparams.DP_ScoreAggregationMode)
+	var retSolutions []Solution = []Solution{}
+	
+	for _, tupSolution := range topSolutions{
+		solution = _DP_tuple_to_solution(pod, tupSolution, references, assurances, scores, explainScoringFunc)
 		solution.WrapUpSolution(cluster, hyperparams)
+		retSolutions = append(retSolutions, solution)
 	}
 
-	return solution
+	return retSolutions
 }
 
 // AddingNewPodK8s implementa un algoritmo baseline ispirato alla logica “LeastAllocated” di Kubernetes.
@@ -367,8 +375,9 @@ func AddingNewPodK8s(cluster *Cluster,
 	pod *Pod,
 	scoringFunction func(*WorkerNode, *Pod) float32,
 	explainScoringFunc func(*WorkerNode, *Pod) map[string]float32,
+	outputsAmount int,
 	hyperparams AlgorithmHyperparams,
-) Solution {
+) []Solution {
 	var solution Solution = InitSolution(pod)
 	var exclude_ids cmn.Set = make(cmn.Set)
 	var computed_scores = map[int]float32{}
@@ -414,5 +423,5 @@ func AddingNewPodK8s(cluster *Cluster,
 		solution.WrapUpSolution(cluster, hyperparams)
 	}
 
-	return solution
+	return []Solution{solution}
 }

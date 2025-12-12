@@ -25,6 +25,11 @@ func (r *PlacementRequest) Validate() error {
 		return err
 	}
 
+	if r.Deployment.Algorithm.OutputsAmount < 1 {
+		fmt.Printf("[WARN] 'OutputsAmount' must be at least 1 but found %d, converted to 1\n", r.Deployment.Algorithm.OutputsAmount)
+		r.Deployment.Algorithm.OutputsAmount = 1
+	}
+
 	return nil
 }
 

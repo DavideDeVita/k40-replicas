@@ -1,0 +1,160 @@
+{
+  "pod_id": "open5gs-test",
+  "accepted": true,
+  "solutions": [
+    {
+      "replicas": 3,
+      "probability": 0.648,
+      "deploy_on": [
+        {
+          "id": "worker-small-04",
+          "cpu": {
+            "capacity": "2000m",
+            "requested": "1000m",
+            "limit": "2000m"
+          },
+          "memory": {
+            "capacity": "4Gi",
+            "requested": "2Gi",
+            "limit": "3548Mi"
+          },
+          "storage": {
+            "capacity": "40Gi",
+            "requested": "10Gi",
+            "limit": "17740Mi"
+          },
+          "score": 0.087820455,
+          "explain": {
+            "assuranceWasteless": 0.0000021865578,
+            "energyCost": 0.000866718,
+            "limitOvercommitPenalty": 0.011193977,
+            "resourcesFit": 0.07575758,
+            "rtWasteless": 0
+          }
+        },
+        {
+          "id": "worker-small-03",
+          "cpu": {
+            "capacity": "2000m",
+            "requested": "500m",
+            "limit": "1500m"
+          },
+          "memory": {
+            "capacity": "4Gi",
+            "requested": "1Gi",
+            "limit": "2548Mi"
+          },
+          "storage": {
+            "capacity": "40Gi",
+            "requested": "5Gi",
+            "limit": "11240Mi"
+          },
+          "score": 0.0008689046,
+          "explain": {
+            "assuranceWasteless": 0.0000021865578,
+            "energyCost": 0.000866718,
+            "limitOvercommitPenalty": 0,
+            "resourcesFit": 0,
+            "rtWasteless": 0
+          }
+        },
+        {
+          "id": "worker-small-02",
+          "cpu": {
+            "capacity": "2000m",
+            "requested": "1000m",
+            "limit": "2000m"
+          },
+          "memory": {
+            "capacity": "4Gi",
+            "requested": "2Gi",
+            "limit": "3548Mi"
+          },
+          "storage": {
+            "capacity": "40Gi",
+            "requested": "10Gi",
+            "limit": "17740Mi"
+          },
+          "score": 0.087820455,
+          "explain": {
+            "assuranceWasteless": 0.0000021865578,
+            "energyCost": 0.000866718,
+            "limitOvercommitPenalty": 0.011193977,
+            "resourcesFit": 0.07575758,
+            "rtWasteless": 0
+          }
+        }
+      ],
+      "explanation": "3-replicas placement suggested to grant an 60.05% affidability.",
+      "energy_delta": 33.75
+    },
+    {
+      "replicas": 1,
+      "probability": 0.9,
+      "deploy_on": [
+        {
+          "id": "worker-large-02",
+          "cpu": {
+            "capacity": "16000m",
+            "requested": "7500m",
+            "limit": "12000m"
+          },
+          "memory": {
+            "capacity": "16Gi",
+            "requested": "7Gi",
+            "limit": "13Gi"
+          },
+          "storage": {
+            "capacity": "100Gi",
+            "requested": "45Gi",
+            "limit": "80Gi"
+          },
+          "score": 0.3294379,
+          "explain": {
+            "assuranceWasteless": 0,
+            "energyCost": 0.00065003854,
+            "limitOvercommitPenalty": 0,
+            "resourcesFit": 0.1469697,
+            "rtWasteless": 0.18181819
+          }
+        }
+      ],
+      "explanation": "1-replica placement suggested to grant an 60.05% affidability.",
+      "energy_delta": 8.4375
+    },
+    {
+      "replicas": 1,
+      "probability": 0.8,
+      "deploy_on": [
+        {
+          "id": "worker-medium-02",
+          "cpu": {
+            "capacity": "8000m",
+            "requested": "3500m",
+            "limit": "6000m"
+          },
+          "memory": {
+            "capacity": "8Gi",
+            "requested": "4Gi",
+            "limit": "7Gi"
+          },
+          "storage": {
+            "capacity": "80Gi",
+            "requested": "45Gi",
+            "limit": "60Gi"
+          },
+          "score": 0.33398336,
+          "explain": {
+            "assuranceWasteless": 0,
+            "energyCost": 0.00065003854,
+            "limitOvercommitPenalty": 0,
+            "resourcesFit": 0.15151516,
+            "rtWasteless": 0.18181819
+          }
+        }
+      ],
+      "explanation": "1-replica placement suggested to grant an 60.05% affidability.",
+      "energy_delta": 8.4375
+    }
+  ]
+}

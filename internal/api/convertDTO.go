@@ -32,10 +32,10 @@ func BuildWorkerNodeFromDTO(wn WorkerNodeDTO) core.WorkerNode {
 			Requested: parseResourceQty(wn.Storage.Requested, "storage"),
 			Limit:     parseResourceQty(wn.Storage.Limit, "storage"),
 		},
-		RealTime:   wn.RealTime,
+		RealTime:       wn.RealTime,
 		EnergyCostCoef: wn.EnergyCostCoef,
 		EnergyCostIdle: wn.EnergyCostIdle,
-		Assurance:  wn.Assurance,
+		Assurance:      wn.Assurance,
 	}
 
 	node.CPU.ComputeDerived()
@@ -69,10 +69,26 @@ func BuildPodFromDTO(p PodDTO) core.Pod {
 //							 OUTPUT
 
 // build Response from solution
-func BuildResponseFromSolution(sol core.Solution) PlacementResponse {
-	resp := PlacementResponse{
-		PodID: 		 sol.Pod.ID,
-		Accepted:    sol.Accepted,
+func BuildResponseFromSolutions(pid string, sols []core.Solution) PlacementResult {
+	resp := PlacementResult{
+		PodID:       pid,
+		Accepted:    false,
+		Solutions: []SolutionDTO{},
+	}
+
+	for _, s := range sols {
+		if !resp.Accepted && s.Accepted{
+			resp.Accepted = true
+		}
+
+		resp.Solutions = append(resp.Solutions, BuildSDTOFromSolution(s))
+	}
+
+	return resp
+}
+
+func BuildSDTOFromSolution(sol core.Solution) SolutionDTO {
+	resp := SolutionDTO{
 		Replicas:    sol.Replicas,
 		Probability: sol.Probability,
 		Explanation: sol.Explanation,

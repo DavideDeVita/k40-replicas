@@ -58,10 +58,11 @@ type PodDTO struct {
 
 // AlgorithmConfigDTO defines which algorithm and scoring configuration to use.
 type AlgorithmConfigDTO struct {
-	Type        string                 `json:"type"`        // e.g. "Greedy", "DP_stateAware", "DP_stateAgnostic"
-	ResourceFit string                 `json:"resourceFit"` // e.g. "leastAllocated", "mostAllocated", "requestedToCapacityRatio"
-	Weights     map[string]float32     `json:"weights,omitempty"`
-	HyperParams map[string]interface{} `json:"hyperparams,omitempty"`
+	Type          string                 `json:"type"`        // e.g. "Greedy", "DP_stateAware", "DP_stateAgnostic"
+	ResourceFit   string                 `json:"resourceFit"` // e.g. "leastAllocated", "mostAllocated", "requestedToCapacityRatio"
+	OutputsAmount int                    `json:"outputsAmount"`
+	Weights       map[string]float32     `json:"weights,omitempty"`
+	HyperParams   map[string]interface{} `json:"hyperparams,omitempty"`
 }
 
 // DeploymentDTO groups the job/pod and algorithm specification.
@@ -108,14 +109,19 @@ type PlacementRequest struct {
 // -----------------------------------------------------------------------------
 // Placement Response
 // -----------------------------------------------------------------------------
-type PlacementResponse struct {
-	PodID		   string             `json:"pod_id"`
-	Accepted       bool               `json:"accepted"`
-	Replicas       int                `json:"replicas"`
-	Probability    float32            `json:"probability,omitempty"`
-	Nodes          []PlacementNodeDTO `json:"deploy_on,omitempty"`
-	Explanation    string             `json:"explanation"`
-	DeltaEnergy    float32            `json:"energy_delta"`
+type PlacementResult struct {
+	PodID       string        `json:"pod_id"`
+	Accepted    bool          `json:"accepted"`
+	Solutions   []SolutionDTO `json:"solutions"`
+	Explanation string        `json:"explanation,omitempty"`
+}
+
+type SolutionDTO struct {
+	Replicas    int                `json:"replicas"`
+	Probability float32            `json:"probability,omitempty"`
+	Nodes       []PlacementNodeDTO `json:"deploy_on,omitempty"`
+	Explanation string             `json:"explanation"`
+	DeltaEnergy float32            `json:"energy_delta"`
 }
 
 type PlacementNodeDTO struct {

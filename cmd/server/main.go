@@ -87,7 +87,7 @@ func placeHandler(w http.ResponseWriter, r *http.Request) {
 // -----------------------------------------------------------------------------
 // Utility: Save JSON Response to File
 // -----------------------------------------------------------------------------
-func saveResponseToFile(resp *api.PlacementResponse) (string, error) {
+func saveResponseToFile(resp *api.PlacementResult) (string, error) {
 	// timestamp := time.Now().Format("20060102-150405")
 	podID := "unknown-pod"
 	if resp.PodID != "" { // if you have resp.PodID; adjust accordingly

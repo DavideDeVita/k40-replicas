@@ -20,6 +20,24 @@
         "assurance": 0.6
       },
       {
+        "id": "worker-small-03",
+        "cpu": { "capacity": "2", "requested": "0", "limit": "500m" },
+        "memory": { "capacity": "4Gi", "requested": "0", "limit": "500Mi" },
+        "storage": { "capacity": "40gi", "requested": "0", "limit": "1000Mi" },
+        "real_time": false,
+        "energy_cost": 30,
+        "assurance": 0.6
+      },
+      {
+        "id": "worker-small-04",
+        "cpu": { "capacity": "2", "requested": "500m", "limit": "1" },
+        "memory": { "capacity": "4Gi", "requested": "1Gi", "limit": "1500Mi" },
+        "storage": { "capacity": "40gi", "requested": "5Gi", "limit": "7500Mi" },
+        "real_time": false,
+        "energy_cost": 30,
+        "assurance": 0.6
+      },
+      {
         "id": "worker-medium-01",
         "cpu": { "capacity": "8", "requested": "0", "limit": "0" },
         "memory": { "capacity": "8Gi", "requested": "0", "limit": "0" },
@@ -63,21 +81,22 @@
   "deployment": {
     "job": {
       "id": "open5gs-test",
-      "real_time": true,
-      "criticality": 0.95,
-      "cpu": { "requested": "2", "limit": "4" },
-      "memory": { "requested": "2Gi", "limit": "4Gi" },
-      "storage": { "requested": "40Gi", "limit": "40Gi" }
+      "real_time": false,
+      "criticality": 0.6005,
+      "cpu": { "requested": "500m", "limit": "1" },
+      "memory": { "requested": "1Gi", "limit": "2Gi" },
+      "storage": { "requested": "5Gi", "limit": "10Gi" }
     },
 
     "algorithm": {
       "type": "DP_StateAware",
-      "resourceFit": "LeastAllocated",
+      "resourceFit": "RequestedToCapcityRatio",
+      "outputsAmount" : 3,
       "weights": {
-        "resourceFit": 3,
-        "energyCost": 2,
+        "resourceFit": 4,
+        "energyCost": 3,
         "assuranceWasteless": 1,
-        "rtWasteless": 1,
+        "rtWasteless": 2,
         "limitOvercommitPenalty" : 1
       },
       "hyperparams": {

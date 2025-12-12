@@ -408,35 +408,70 @@ func _DP_is_tuple_eligible(probabilities []float32,
 	return prob, prob >= theta
 }
 
-// _DP_pick_best_solution seleziona la tupla eleggibile con punteggio minimo.
+// _DP_pick_top_solutions returns the top N eligible tuples with the lowest aggregated score.
+// If outputsAmount >= number of eligibles, all tuples are returned sorted.
 //
-// Parametri:
-//   - all_eligibles: insieme di tuple eleggibili.
-//   - scores: vettore degli score dei singoli nodi.
-//   - aggregation_mode: stringa. Supporta: "sum", "geometric", "squaredsum"
+// Params:
+//   - all_eligibles: list of candidate tuples
+//   - all_nodes_scores: vector of per-node scores
+//   - outputsAmount: number of top solutions to return
+//   - aggregation_mode: "sum", "geometric", "squaredsum"
 //
-// Ritorna:
-//   - tuple con punteggio minimo e relativo valore.
-func _DP_pick_best_solution(all_eligibles [][]int, all_nodes_scores []float32, aggregation_mode string) ([]int, float32) {
-	var best_sol []int
-	var min_score float32 = -1.
-	var scores []float32
-	for _, tuple := range all_eligibles {
-		scores = []float32{}
-		var score float32 = 0.
-		for _, node_idx := range tuple {
-			scores = append(scores, all_nodes_scores[node_idx])
-		}
-		score = cmn.AggregateScores(scores, aggregation_mode)
+// Returns:
+//   - solutions: list of tuples sorted by ascending score
+//   - scores: corresponding aggregated scores, same order
+func _DP_pick_top_solutions(
+    all_eligibles [][]int,
+    all_nodes_scores []float32,
+    outputsAmount int,
+    aggregation_mode string,
+) ([][]int, []float32) {
 
-		fmt.Printf("[DEBUG] Score of %v is %.2f\n", tuple, score)
-		if min_score < 0 || score < min_score {
-			min_score = score
-			best_sol = tuple
-		}
-	}
-	fmt.Printf("[DEBUG] Best Score is %.2f of sol %v\n\t all scores: %v\n", min_score, best_sol, all_nodes_scores)
-	return best_sol, min_score
+    type scoredTuple struct {
+        tuple []int
+        score float32
+    }
+
+    // Compute all scores
+    scored := make([]scoredTuple, 0, len(all_eligibles))
+
+    for _, tuple := range all_eligibles {
+        // Extract scores for nodes in tuple
+        var scores []float32
+        for _, node_idx := range tuple {
+            scores = append(scores, all_nodes_scores[node_idx])
+        }
+
+        agg := cmn.AggregateScores(scores, aggregation_mode)
+        fmt.Printf("[DEBUG] Score of %v is %.2f\n", tuple, agg)
+
+        scored = append(scored, scoredTuple{tuple: tuple, score: agg})
+    }
+
+    // Sort by ascending score
+    sort.Slice(scored, func(i, j int) bool {
+        return scored[i].score < scored[j].score
+    })
+
+    // Clamp N
+    if outputsAmount <= 0 {
+        outputsAmount = 1
+    }
+    if outputsAmount > len(scored) {
+        outputsAmount = len(scored)
+    }
+
+    // Extract top N
+    outTuples := make([][]int, outputsAmount)
+    outScores := make([]float32, outputsAmount)
+
+    for i := 0; i < outputsAmount; i++ {
+        outTuples[i] = scored[i].tuple
+        outScores[i] = scored[i].score
+    }
+
+    // fmt.Printf("[DEBUG] Top %d solutions extracted.\n", outputsAmount)
+    return outTuples, outScores
 }
 
 // _update_solution costruisce la Solution finale a partire da una tupla di indici.
@@ -452,22 +487,22 @@ func _DP_pick_best_solution(all_eligibles [][]int, all_nodes_scores []float32, a
 // Effetti:
 //   - Aggiunge i nodi selezionati alla soluzione finale e aggiorna il numero di repliche.
 //   - Calcola e salva la probabilità cumulata per la soluzione complessiva.
-func _update_solution(solution *Solution,
-	selectedSolution []int,
+func _DP_tuple_to_solution(	pod *Pod,
+	tupleSolution []int,
 	references []*WorkerNode,
 	probabilities []float32,
 	scores []float32,
 	explainScoringFunc func(*WorkerNode, *Pod) map[string]float32,
-) int {
-
-	solutionProb, isIt := _DP_is_tuple_eligible(probabilities, solution.Pod.Criticality, selectedSolution)
+) Solution {
+	var solution Solution = InitSolution(pod)
+	solutionProb, isIt := _DP_is_tuple_eligible(probabilities, pod.Criticality, tupleSolution)
 
 	if !isIt {
-		fmt.Printf("[ERROR] DP updating a solution not eligible\n\tProbH+ : %.3f / %.2f\n\tTuple: %v", solutionProb, solution.Pod.Criticality, selectedSolution)
+		fmt.Printf("[ERROR] DP tuple solution not eligible\n\tProbH+ : %.3f / %.2f\n\tTuple: %v", solutionProb, solution.Pod.Criticality, tupleSolution)
 	}
 
 	// seen := make(map[int]bool)
-	for _, nodeIdx := range selectedSolution {
+	for _, nodeIdx := range tupleSolution {
 		// Debugging: make sure no duplicates
 		// if seen[nodeIdx] {
 		// 	continue
@@ -478,7 +513,8 @@ func _update_solution(solution *Solution,
 		explainScore := explainScoringFunc(node, solution.Pod)
 		solution.AddToSolution(node, solutionProb, scores[nodeIdx], explainScore)
 	}
-	return solution.Replicas
+	return solution
 }
+
 
 

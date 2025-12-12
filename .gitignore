@@ -1,2 +1,3 @@
 #Ignoring all sub directories (they contain data)
-
+.exe
+.tar
