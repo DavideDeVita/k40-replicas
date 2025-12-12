@@ -443,7 +443,7 @@ func _DP_pick_top_solutions(
         }
 
         agg := cmn.AggregateScores(scores, aggregation_mode)
-        fmt.Printf("[DEBUG] Score of %v is %.2f\n", tuple, agg)
+        // fmt.Printf("[DEBUG] Score of %v is %.2f\n", tuple, agg)
 
         scored = append(scored, scoredTuple{tuple: tuple, score: agg})
     }
