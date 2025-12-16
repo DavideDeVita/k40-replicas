@@ -1,0 +1,108 @@
+{
+  "pod_id": "free5g-upf",
+  "accepted": true,
+  "solutions": [
+    {
+      "replicas": 1,
+      "probability": 0.95,
+      "deploy_on": [
+        {
+          "id": "reg-w-large",
+          "cpu": {
+            "capacity": "16000m",
+            "requested": "1328m",
+            "limit": "6392m"
+          },
+          "memory": {
+            "capacity": "16750372454",
+            "requested": "2576980377",
+            "limit": "11918534246"
+          },
+          "storage": {
+            "capacity": "57Gi",
+            "requested": "16Gi",
+            "limit": "55941949030"
+          },
+          "score": 0.037136808,
+          "explain": {
+            "assuranceWasteless": 0,
+            "energyCost": 0,
+            "limitOvercommitPenalty": 0,
+            "resourcesFit": 0.037136808,
+            "rtWasteless": 0
+          }
+        }
+      ],
+      "explanation": "1-replica placement suggested to grant an 60.00% affidability.",
+      "energy_delta": 0
+    },
+    {
+      "replicas": 1,
+      "probability": 0.8,
+      "deploy_on": [
+        {
+          "id": "reg-w-medium-1",
+          "cpu": {
+            "capacity": "8000m",
+            "requested": "1028m",
+            "limit": "2862m"
+          },
+          "memory": {
+            "capacity": "8375186227",
+            "requested": "1536Mi",
+            "limit": "7194070220"
+          },
+          "storage": {
+            "capacity": "38Gi",
+            "requested": "16Gi",
+            "limit": "56478819942"
+          },
+          "score": 0.08767262,
+          "explain": {
+            "assuranceWasteless": 0,
+            "energyCost": 0,
+            "limitOvercommitPenalty": 0.04128151,
+            "resourcesFit": 0.04639111,
+            "rtWasteless": 0
+          }
+        }
+      ],
+      "explanation": "1-replica placement suggested to grant an 60.00% affidability.",
+      "energy_delta": 0
+    },
+    {
+      "replicas": 1,
+      "probability": 0.8,
+      "deploy_on": [
+        {
+          "id": "reg-w-medium-2",
+          "cpu": {
+            "capacity": "8000m",
+            "requested": "1395m",
+            "limit": "3079m"
+          },
+          "memory": {
+            "capacity": "8375186227",
+            "requested": "1503238553",
+            "limit": "10415295692"
+          },
+          "storage": {
+            "capacity": "38Gi",
+            "requested": "16Gi",
+            "limit": "70437463654"
+          },
+          "score": 0.13179937,
+          "explain": {
+            "assuranceWasteless": 0,
+            "energyCost": 0,
+            "limitOvercommitPenalty": 0.08127644,
+            "resourcesFit": 0.050522923,
+            "rtWasteless": 0
+          }
+        }
+      ],
+      "explanation": "1-replica placement suggested to grant an 60.00% affidability.",
+      "energy_delta": 0
+    }
+  ]
+}

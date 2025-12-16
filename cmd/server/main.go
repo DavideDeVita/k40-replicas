@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"local/KOrche/internal/api"
 	"local/KOrche/internal/placer"
@@ -36,6 +37,30 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 // Optional query ?output=file -> saves result to a JSON file
 // -----------------------------------------------------------------------------
 func placeHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+
+	// Log ricezione richiesta
+	log.Printf(
+		"[INFO] Request: %s %s from %s at %s (UTC)",
+		r.Method,
+		r.URL.Path,
+		r.RemoteAddr,
+		start.Format(time.RFC3339),
+	)
+
+	// Log finale garantito
+	defer func() {
+		end := time.Now()
+		log.Printf(
+			"[INFO] Response: %s %s completed at %s (UTC). Duration: %s",
+			r.Method,
+			r.URL.Path,
+			end.Format(time.RFC3339),
+			end.Sub(start),
+		)
+	}()
+
+	// resto della funzione
 	if r.Method != http.MethodPost {
 		http.Error(w, "only POST allowed", http.StatusMethodNotAllowed)
 		return

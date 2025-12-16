@@ -2,135 +2,109 @@
   "cluster": {
     "worker_nodes": [
       {
-        "id": "worker-small-01",
-        "cpu": { "capacity": "2", "requested": "0", "limit": "0" },
-        "memory": { "capacity": "4Gi", "requested": "0", "limit": "0" },
-        "storage": { "capacity": "40gi", "requested": "0", "limit": "0" },
-        "real_time": false,
-        "energy_cost": 25,
-        "assurance": 0.60
-      },
-      {
-        "id": "worker-small-02",
-        "cpu": { "capacity": "2", "requested": "500m", "limit": "1" },
-        "memory": { "capacity": "4Gi", "requested": "1Gi", "limit": "1500Mi" },
-        "storage": { "capacity": "40gi", "requested": "5Gi", "limit": "7500Mi" },
-        "real_time": false,
-        "energy_cost": 25,
-        "assurance": 0.60
-      },
-      {
-        "id": "worker-small-03",
-        "cpu": { "capacity": "2", "requested": "0", "limit": "0" },
-        "memory": { "capacity": "4Gi", "requested": "0", "limit": "0" },
-        "storage": { "capacity": "40gi", "requested": "0", "limit": "0" },
-        "real_time": false,
-        "energy_cost": 25,
-        "assurance": 0.60
-      },
-      {
-        "id": "worker-small-04",
-        "cpu": { "capacity": "2", "requested": "500m", "limit": "1" },
-        "memory": { "capacity": "4Gi", "requested": "1Gi", "limit": "1500Mi" },
-        "storage": { "capacity": "40gi", "requested": "5Gi", "limit": "7500Mi" },
-        "real_time": false,
-        "energy_cost": 25,
-        "assurance": 0.60
-      },
-      {
-        "id": "worker-medium-01",
-        "cpu": { "capacity": "8", "requested": "0", "limit": "0" },
-        "memory": { "capacity": "8Gi", "requested": "0", "limit": "0" },
-        "storage": { "capacity": "80gi", "requested": "0", "limit": "0" },
+        "id": "reg-w-large",
+        "cpu": { "capacity": "16000m", "requested": "1072m", "limit": "5892m" },
+        "memory": {
+          "capacity": "15.6Gi",
+          "requested": "1.4Gi",
+          "limit": "9.1Gi"
+        },
+        "storage": {
+          "capacity": "57Gi",
+          "requested": "8Gi",
+          "limit": "36.1Gi"
+        },
         "real_time": true,
-        "energy_cost": 120,
-        "energy_cost_idle": 15,
-        "assurance": 0.75
-      },
-      {
-        "id": "worker-medium-02",
-        "cpu": { "capacity": "8", "requested": "3", "limit": "5" },
-        "memory": { "capacity": "8Gi", "requested": "3Gi", "limit": "5Gi" },
-        "storage": { "capacity": "80gi", "requested": "40Gi", "limit": "50Gi" },
-        "real_time": true,
-        "energy_cost": 120,
-        "energy_cost_idle": 15,
-        "assurance": 0.75
-      },
-      {
-        "id": "worker-medium-03",
-        "cpu": { "capacity": "8", "requested": "3", "limit": "5" },
-        "memory": { "capacity": "8Gi", "requested": "3Gi", "limit": "5Gi" },
-        "storage": { "capacity": "80gi", "requested": "40Gi", "limit": "50Gi" },
-        "real_time": true,
-        "energy_cost": 120,
-        "energy_cost_idle": 15,
-        "assurance": 0.75
-      },
-      {
-        "id": "worker-medium-04",
-        "cpu": { "capacity": "8", "requested": "3", "limit": "5" },
-        "memory": { "capacity": "8Gi", "requested": "3Gi", "limit": "5Gi" },
-        "storage": { "capacity": "80gi", "requested": "40Gi", "limit": "50Gi" },
-        "real_time": true,
-        "energy_cost": 120,
-        "energy_cost_idle": 15,
-        "assurance": 0.75
-      },
-      {
-        "id": "worker-large-01",
-        "cpu": { "capacity": "16", "requested": "0", "limit": "0" },
-        "memory": { "capacity": "16Gi", "requested": "0", "limit": "0" },
-        "storage": { "capacity": "100gi", "requested": "0", "limit": "0" },
-        "real_time": true,
-        "energy_cost": 300,
+        "energy_cost": 50,
         "energy_cost_idle": 30,
-        "assurance": 0.9
+        "assurance": 0.95
       },
       {
-        "id": "worker-large-02",
-        "cpu": { "capacity": "16", "requested": "2", "limit": "4" },
-        "memory": { "capacity": "16Gi", "requested": "2Gi", "limit": "3Gi" },
-        "storage": { "capacity": "100gi", "requested": "20Gi", "limit": "35Gi" },
+        "id": "reg-w-medium-1",
+        "cpu": { "capacity": "8000m", "requested": "772m", "limit": "2362m" },
+        "memory": {
+          "capacity": "7.8Gi",
+          "requested": "0.5Gi",
+          "limit": "4.7Gi"
+        },
+        "storage": {
+          "capacity": "38Gi",
+          "requested": "8Gi",
+          "limit": "36.6Gi"
+        },
         "real_time": true,
-        "energy_cost": 300,
+        "energy_cost": 50,
         "energy_cost_idle": 30,
-        "assurance": 0.9
+        "assurance": 0.8
+      },
+      {
+        "id": "reg-w-medium-2",
+        "cpu": { "capacity": "8000m", "requested": "1139m", "limit": "2579m" },
+        "memory": {
+          "capacity": "7.8Gi",
+          "requested": "0.4Gi",
+          "limit": "7.7Gi"
+        },
+        "storage": {
+          "capacity": "38Gi",
+          "requested": "8Gi",
+          "limit": "49.6Gi"
+        },
+        "real_time": true,
+        "energy_cost": 50,
+        "energy_cost_idle": 30,
+        "assurance": 0.8
+      },
+      {
+        "id": "reg-w-small",
+        "cpu": { "capacity": "2000m", "requested": "219m", "limit": "219m" },
+        "memory": {
+          "capacity": "3.8Gi",
+          "requested": "0.0Gi",
+          "limit": "0.8Gi"
+        },
+        "storage": {
+          "capacity": "18Gi",
+          "requested": "8Gi",
+          "limit": "30.0Gi"
+        },
+        "real_time": false,
+        "energy_cost": 50,
+        "energy_cost_idle": 30,
+        "assurance": 0.6
       }
     ]
   },
-
   "deployment": {
     "job": {
-      "id": "dummy",
-      "real_time": false,
-      "criticality": 0.61,
-      "cpu": { "requested": "500m", "limit": "1" },
+      "id": "free5g-upf",
+      "real_time": true,
+      "criticality": 0.6,
+      "cpu": { "requested": "256m", "limit": "500m" },
       "memory": { "requested": "1Gi", "limit": "2Gi" },
-      "storage": { "requested": "5Gi", "limit": "20Gi" }
+      "storage": { "requested": "8Gi", "limit": "16Gi" }
     },
-
     "algorithm": {
       "type": "DP_StateAware",
-      "resourceFit": "RequestedToCapacityRatio",
+      "resourceFit": "LeastAllocated",
+      "outputsAmount": 3,
       "weights": {
         "resourceFit": 3,
-        "energyCost": 3,
-        "assuranceWasteless": 2,
-        "rtWasteless": 2,
-        "limitOvercommitPenalty" : 1
+        "energyCost": 2,
+        "assuranceWasteless": 1,
+        "rtWasteless": 1,
+        "limitOvercommitPenalty": 1
       },
       "hyperparams": {
-        "maxReplicas": 5,
+        "maxReplicas": 1,
         "dp_maxNeighbors": 10,
-        "dp_solutionOversizeSearch" : 3,
-        "dp_neighborSpan" : 2,
-        "dp_energyCostWakeupMultiplier" : 1.5,
-        "dp_energyCostWakeupConst" : 0.1,
-        "dp_scoreAggregationMode" : "SquaredSum",
-        "overcommit_ReourceDangerRatio" : 0.85,
-        "energyCostMode" : "deltalinear",
-        "verbose" : true
+        "dp_solutionOversizeSearch": 1,
+        "dp_neighborSpan": 1,
+        "dp_energyCostWakeupMultiplier": 1.5,
+        "dp_scoreAggregationMode": "SquaredSum",
+        "overcommit_ReourceDangerRatio": 0.95,
+        "energyCostMode": "deltalinear",
+        "verbose": false
       }
     }
   }
